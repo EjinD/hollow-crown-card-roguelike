@@ -1,5 +1,36 @@
 import type { CombatState } from "../types/game";
 import { cards } from "../data/cards";
+import { enemies } from "../data/enemies";
+
+export function startCombat(): CombatState {
+    const enemy = enemies[0];
+    const startingCard = cards[0];
+
+    return {
+        phase: "player-turn",
+        turn: 1,
+
+        player: {
+            hp: 10,
+            maxHp: 10,
+            actions: 1,
+            cards: [
+                {
+                    cardId: startingCard.id,
+                    cooldownRemaining: 0,
+                },
+            ],
+        },
+
+        enemy: {
+            definitionId: enemy.id,
+            hp: enemy.maxHp,
+            block: 0,
+            intentIndex: 0,
+            intent: enemy.intents[0],
+        },
+    };
+}
 
 export function playCard(state: CombatState, cardId: string,):CombatState{
     if(state.phase !== "player-turn") {
@@ -35,4 +66,52 @@ export function playCard(state: CombatState, cardId: string,):CombatState{
     }
 
  } 
- 
+export function executeEnemyIntent(
+  state: CombatState,
+): CombatState {
+  if (state.phase !== "enemy-turn") {
+    return state;
+  }
+
+  const { intent } = state.enemy;
+
+  if (intent.type === "attack") {
+    const newPlayerHp = Math.max(
+      0,
+      state.player.hp - intent.damage,
+    );
+
+    if (newPlayerHp === 0) {
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          hp: 0,
+        },
+        phase: "defeat",
+      };
+    }
+
+    return {
+      ...state,
+      player: {
+        ...state.player,
+        hp: newPlayerHp,
+      },
+      phase: "player-turn",
+    };
+  }
+
+  if (intent.type === "block") {
+    return {
+      ...state,
+      enemy: {
+        ...state.enemy,
+        block: state.enemy.block + intent.amount,
+      },
+      phase: "player-turn",
+    };
+  }
+
+  return state;
+}
