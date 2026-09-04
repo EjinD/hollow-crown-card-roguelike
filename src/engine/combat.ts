@@ -4,7 +4,6 @@ import { enemies } from "../data/enemies";
 
 export function startCombat(): CombatState {
     const enemy = enemies[0];
-    const startingCard = cards[0];
 
     return {
         phase: "player-turn",
@@ -23,7 +22,12 @@ export function startCombat(): CombatState {
                     cardId: "flame-burst",
                     cooldownRemaining: 0,
                 },
+                {
+                    cardId: "ignite",
+                    cooldownRemaining: 0,
+                }
             ],
+            statusEffects: []
         },
 
         enemy: {
@@ -32,11 +36,15 @@ export function startCombat(): CombatState {
             block: 0,
             intentIndex: 0,
             intent: enemy.intents[0],
+            statusEffects: [],
         },
     };
 }
 
-export function playCard(state: CombatState, cardId: string,):CombatState{
+export function playCard(
+    state: CombatState,
+    cardId: string,
+): CombatState {
     if(state.phase !== "player-turn") {
         return state;
     }
@@ -59,8 +67,23 @@ export function playCard(state: CombatState, cardId: string,):CombatState{
     if(cardState.cooldownRemaining > 0) {
         return state;
     }
+    
+    const cardEffects = card.effects ?? [];
 
-    const newEnemyHp = Math.max(0, state.enemy.hp - card.damage);
+    const damageToBlock = Math.min(
+        card.damage,
+        state.enemy.block,
+    );
+
+    const remainingDamage = card.damage - damageToBlock;
+
+    const newBlock = state.enemy.block - damageToBlock;
+
+
+
+    const newEnemyHp = Math.max(
+        0,
+        state.enemy.hp - remainingDamage);
     if (newEnemyHp === 0) {
         return {
             ...state, enemy: {
@@ -79,6 +102,22 @@ export function playCard(state: CombatState, cardId: string,):CombatState{
         };
     }
 );
+    
+    const updatedEnemyStatusEffects = [
+        ...state.enemy.statusEffects,
+    ];
+
+    for (const effect of cardEffects) {
+        if (effect.type === "burn") {
+            updatedEnemyStatusEffects.push(
+                {
+                    type: "burn",
+                    amount: effect.amount,
+                    duration: effect.duration
+                }
+            )
+        }
+    }
 
     return {
         ...state,
@@ -89,17 +128,35 @@ export function playCard(state: CombatState, cardId: string,):CombatState{
         }, enemy: {
             ...state.enemy,
             hp: newEnemyHp,
+            block: newBlock,
+            statusEffects: updatedEnemyStatusEffects
         },
         phase: "enemy-turn"
     }
 
  } 
+
 export function executeEnemyIntent(
   state: CombatState,
 ): CombatState {
   if (state.phase !== "enemy-turn") {
     return state;
   }
+
+  const enemyDefinition = enemies.find(
+    (enemy) => enemy.id === state.enemy.definitionId,
+  );
+
+  if (!enemyDefinition) {
+    return state;
+  }
+
+  const nextIntentIndex =
+    (state.enemy.intentIndex + 1) %
+    enemyDefinition.intents.length;
+
+  const nextIntent =
+    enemyDefinition.intents[nextIntentIndex];
 
   const { intent } = state.enemy;
 
@@ -116,6 +173,11 @@ export function executeEnemyIntent(
           ...state.player,
           hp: 0,
         },
+        enemy: {
+          ...state.enemy,
+          intentIndex: nextIntentIndex,
+          intent: nextIntent,
+        },
         phase: "defeat",
       };
     }
@@ -125,6 +187,11 @@ export function executeEnemyIntent(
       player: {
         ...state.player,
         hp: newPlayerHp,
+      },
+      enemy: {
+        ...state.enemy,
+        intentIndex: nextIntentIndex,
+        intent: nextIntent,
       },
       phase: "enemy-turn",
     };
@@ -136,13 +203,15 @@ export function executeEnemyIntent(
       enemy: {
         ...state.enemy,
         block: state.enemy.block + intent.amount,
+        intentIndex: nextIntentIndex,
+        intent: nextIntent,
       },
       phase: "enemy-turn",
     };
   }
 
   return state;
-};
+}
 
 export function processEndTurn(
     state: CombatState,
@@ -150,6 +219,15 @@ export function processEndTurn(
     if (state.phase !== "enemy-turn") {
         return state;
     }
+
+    const burnDamage = state.enemy.statusEffects
+        .filter((effect) => effect.type === "burn").
+        reduce((total, effect) => total + effect.amount, 0)
+
+    const newEnemyHp = Math.max(
+        0,
+        state.enemy.hp - burnDamage,
+    )
 
     const updatedCards = state.player.cards.map(
         (cardState) => ({
@@ -168,6 +246,11 @@ export function processEndTurn(
             ...state.player,
             actions: 1,
             cards: updatedCards,
+        },
+        enemy: {
+            ...state.enemy,
+            hp: newEnemyHp,
+            block: 0
         },
         phase: "player-turn",
     };

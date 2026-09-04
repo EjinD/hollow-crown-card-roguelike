@@ -243,3 +243,202 @@ describe("Combat", () => {
     ).toBe(0);
   });
 });
+it("should apply block when enemy intent is block", () => {
+    const state = startCombat();
+
+    const blockState = {
+        ...state,
+        enemy: {
+            ...state.enemy,
+            intent: {
+                type: "block" as const,
+                amount: 3,
+            },
+        },
+        phase: "enemy-turn" as const,
+    };
+
+    const nextState = executeEnemyIntent(
+        blockState,
+    );
+
+    expect(nextState.enemy.block).toBe(3);
+    expect(nextState.player.hp).toBe(10);
+    expect(nextState.phase).toBe("enemy-turn");
+});
+it("should use enemy block before reducing HP", () => {
+    const state = startCombat();
+
+    const blockState = {
+        ...state,
+        enemy: {
+            ...state.enemy,
+            block: 3,
+        },
+    };
+
+    const nextState = playCard(
+        blockState,
+        "fireball",
+    );
+
+    expect(nextState.enemy.hp).toBe(15);
+    expect(nextState.enemy.block).toBe(1);
+});
+it("should deal remaining damage after breaking enemy block", () => {
+    const state = startCombat();
+
+    const blockState = {
+        ...state,
+        enemy: {
+            ...state.enemy,
+            block: 1,
+        },
+    };
+
+    const nextState = playCard(
+        blockState,
+        "fireball",
+    );
+
+    expect(nextState.enemy.hp).toBe(14);
+    expect(nextState.enemy.block).toBe(0);
+});
+it("should keep enemy block after enemy turn", () => {
+    const state = startCombat();
+
+    const blockState = {
+        ...state,
+        enemy: {
+            ...state.enemy,
+            block: 3,
+        },
+        phase: "enemy-turn" as const,
+    };
+
+    const nextState = executeEnemyIntent(
+        blockState,
+    );
+
+    expect(nextState.enemy.block).toBe(3);
+});
+it("should reset enemy block at the end of the turn", () => {
+    const state = startCombat();
+
+    const blockState = {
+        ...state,
+        phase: "enemy-turn" as const,
+        enemy: {
+            ...state.enemy,
+            block: 3,
+        },
+    };
+
+    const nextState = processEndTurn(blockState);
+
+    expect(nextState.enemy.block).toBe(0);
+});
+it("should move to the next enemy intent after enemy action", () => {
+    const state = startCombat();
+
+    const enemyTurnState = {
+        ...state,
+        phase: "enemy-turn" as const,
+        enemy: {
+            ...state.enemy,
+            intentIndex: 0,
+            intent: {
+                type: "attack" as const,
+                damage: 2,
+            },
+        },
+    };
+
+    const nextState = executeEnemyIntent(enemyTurnState);
+
+    expect(nextState.enemy.intentIndex).toBe(1);
+});
+it("should set the next enemy intent after enemy action", () => {
+    const state = startCombat();
+
+    const enemyTurnState = {
+        ...state,
+        phase: "enemy-turn" as const,
+        enemy: {
+            ...state.enemy,
+            intentIndex: 0,
+            intent: {
+                type: "attack" as const,
+                damage: 2,
+            },
+        },
+    };
+
+    const nextState = executeEnemyIntent(enemyTurnState);
+
+    expect(nextState.enemy.intentIndex).toBe(1);
+    expect(nextState.enemy.intent).toEqual({
+        type: "block",
+        amount: 3,
+    });
+});
+it("should loop back to the first enemy intent", () => {
+    const state = startCombat();
+
+    const enemyTurnState = {
+        ...state,
+        phase: "enemy-turn" as const,
+        enemy: {
+            ...state.enemy,
+            intentIndex: 1,
+            intent: {
+                type: "block" as const,
+                amount: 3,
+            },
+        },
+    };
+
+    const nextState = executeEnemyIntent(enemyTurnState);
+
+    expect(nextState.enemy.intentIndex).toBe(0);
+    expect(nextState.enemy.intent).toEqual({
+        type: "attack",
+        damage: 2,
+    });
+});
+it("should apply burn to the enemy", () => {
+    const state = startCombat();
+
+    const nextState = playCard(state, "ignite");
+
+    expect(nextState.enemy.statusEffects).toEqual([
+        {
+            type: "burn",
+            amount: 3,
+            duration: 2
+        },
+    ]);
+});
+it("should deal burn damage at the end of the turn", () => {
+    const state = startCombat();
+
+    const burnState = {
+        ...state,
+        phase: "enemy-turn" as const,
+        enemy: {
+            ...state.enemy,
+            hp: 15,
+            statusEffects: [
+                {
+                    type: "burn" as const,
+                    amount: 3,
+                    duration: 2
+                },
+            ],
+        },
+    };
+
+    const nextState = processEndTurn(burnState);
+
+    expect(nextState.enemy.hp).toBe(12);
+});

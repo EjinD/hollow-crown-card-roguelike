@@ -1,19 +1,34 @@
 export type CombatPhase = | "player-turn" | "enemy-turn" | "victory" | "defeat";
+
+export type CardEffect =
+  | {
+      type: "burn";
+      amount: number;
+      duration: number
+    };
+
 export interface CardDefinition {
     id: string;
     name: string;
     damage: number;
     cooldown: number;
+    effects?: CardEffect[];
 }
 export interface CardState {
     cardId: string;
     cooldownRemaining: number;
+}
+export interface StatusEffect {
+    type: "burn";
+    amount: number;
+    duration: number;
 }
 export interface PlayerState {
     hp: number;
     maxHp: number;
     actions: number;
     cards: CardState[];
+    statusEffects: StatusEffect[]
 }
 export type EnemyIntent = | {
     type: "attack";
@@ -34,6 +49,7 @@ export interface EnemyState {
   block: number;
   intentIndex: number;
   intent: EnemyIntent;
+  statusEffects: StatusEffect[];
 }
 export interface CombatState {
   phase: CombatPhase;

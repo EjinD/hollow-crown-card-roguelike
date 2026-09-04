@@ -11,5 +11,18 @@ export const cards: CardDefinition[] = [
         name: "Flame burst",
         damage: 5,
         cooldown: 2,
+    },
+    {
+        id: "ignite",
+        name: "Ignite",
+        damage: 1,
+        cooldown: 1,
+        effects: [
+            {
+                type: "burn",
+                amount: 3,
+                duration: 2
+            }
+        ]
     }
 ]
