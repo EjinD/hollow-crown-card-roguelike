@@ -16,7 +16,11 @@ export function startCombat(): CombatState {
             actions: 1,
             cards: [
                 {
-                    cardId: startingCard.id,
+                    cardId: "fireball",
+                    cooldownRemaining: 0,
+                },
+                {
+                    cardId: "flame-burst",
                     cooldownRemaining: 0,
                 },
             ],
@@ -45,6 +49,17 @@ export function playCard(state: CombatState, cardId: string,):CombatState{
     if (!card) {
         return state
     }
+    const cardState = state.player.cards.find(
+        (cardState) => cardState.cardId === cardId,
+    );
+
+    if(!cardState) {
+        return state
+    }
+    if(cardState.cooldownRemaining > 0) {
+        return state;
+    }
+
     const newEnemyHp = Math.max(0, state.enemy.hp - card.damage);
     if (newEnemyHp === 0) {
         return {
@@ -53,11 +68,24 @@ export function playCard(state: CombatState, cardId: string,):CombatState{
                 hp: 0,
             }, phase: "victory"
         };
+    };
+
+    const updatedCards = state.player.cards.map((cardState) => {
+        if (cardState.cardId !== cardId) {
+            return cardState;
+        }
+        return {
+            ...cardState, cooldownRemaining: card.cooldown,
+        };
     }
+);
+
     return {
-        ...state, player: {
+        ...state,
+         player: {
             ...state.player,
             actions: state.player.actions - 1,
+            cards: updatedCards
         }, enemy: {
             ...state.enemy,
             hp: newEnemyHp,
@@ -98,7 +126,7 @@ export function executeEnemyIntent(
         ...state.player,
         hp: newPlayerHp,
       },
-      phase: "player-turn",
+      phase: "enemy-turn",
     };
   }
 
@@ -109,9 +137,38 @@ export function executeEnemyIntent(
         ...state.enemy,
         block: state.enemy.block + intent.amount,
       },
-      phase: "player-turn",
+      phase: "enemy-turn",
     };
   }
 
   return state;
+};
+
+export function processEndTurn(
+    state: CombatState,
+): CombatState {
+    if (state.phase !== "enemy-turn") {
+        return state;
+    }
+
+    const updatedCards = state.player.cards.map(
+        (cardState) => ({
+            ...cardState,
+            cooldownRemaining: Math.max(
+                0,
+                cardState.cooldownRemaining - 1,
+            ),
+        }),
+    );
+
+    return {
+        ...state,
+        turn: state.turn + 1,
+        player: {
+            ...state.player,
+            actions: 1,
+            cards: updatedCards,
+        },
+        phase: "player-turn",
+    };
 }
