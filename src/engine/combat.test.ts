@@ -8,7 +8,15 @@ import {
   processEndTurn,
   applyCardEffects,
 } from "./combat";
-import { starterDeck, addCardToDeck, removeCardFromDeck } from "../data/decks";
+import {
+    starterDeck,
+    addCardToDeck,
+    removeCardFromDeck,
+    cloneDeck,
+    findCardInDeck,
+    drawCard,
+    drawCards
+} from "../data/decks";
 
 describe("Combat", () => {
   it("should start combat with correct initial state", () => {
@@ -1142,4 +1150,195 @@ it("should not add an unknown card to the deck", () => {
     const result = addCardToDeck(deck, "unknown-card");
 
     expect(result).toEqual(deck);
+});
+it("should clone the deck without sharing card objects", () => {
+    const deck = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 1,
+        },
+    ];
+
+    const result = cloneDeck(deck);
+
+    expect(result).toEqual(deck);
+    expect(result).not.toBe(deck);
+    expect(result[0]).not.toBe(deck[0]);
+    expect(result[1]).not.toBe(deck[1]);
+});
+it("should find a card in the deck", () => {
+    const deck = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 1,
+        },
+    ];
+
+    const result = findCardInDeck(deck, "ignite");
+
+    expect(result).toEqual({
+        cardId: "ignite",
+        cooldownRemaining: 1,
+    });
+});
+it("should return undefined when card is not in the deck", () => {
+    const deck = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const result = findCardInDeck(deck, "ignite");
+
+    expect(result).toBeUndefined();
+});
+it("should draw the first card from the deck", () => {
+    const deck = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const result = drawCard(deck);
+
+    expect(result.card).toEqual({
+        cardId: "fireball",
+        cooldownRemaining: 0,
+    });
+
+    expect(result.remainingDeck).toEqual([
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+    ]);
+});
+it("should return undefined when drawing from an empty deck", () => {
+    const result = drawCard([]);
+
+    expect(result.card).toBeUndefined();
+    expect(result.remainingDeck).toEqual([]);
+});
+it("should draw multiple cards from the deck", () => {
+    const deck = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "flame-burst",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "flame-guard",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const result = drawCards(deck, 3);
+
+    expect(result.drawnCards).toEqual([
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "flame-burst",
+            cooldownRemaining: 0,
+        },
+    ]);
+
+    expect(result.remainingDeck).toEqual([
+        {
+            cardId: "flame-guard",
+            cooldownRemaining: 0,
+        },
+    ]);
+});
+it("should draw all available cards when count exceeds deck size", () => {
+    const deck = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const result = drawCards(deck, 5);
+
+    expect(result.drawnCards).toEqual(deck);
+    expect(result.remainingDeck).toEqual([]);
+});
+it("should initialize the draw pile with the starter deck", () => {
+    const state = startCombat();
+
+    expect(state.player.drawPile).toEqual([
+        {
+            cardId: "flame-guard",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ember-guard",
+            cooldownRemaining: 0,
+        },
+    ]);
+});
+it("should not share the starter deck reference with draw pile", () => {
+    const state = startCombat();
+
+    expect(state.player.drawPile).not.toBe(starterDeck);
+});
+it("should draw three cards into the starting hand", () => {
+    const state = startCombat();
+
+    expect(state.player.hand).toEqual([
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "flame-burst",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+    ]);
+
+    expect(state.player.drawPile).toEqual([
+        {
+            cardId: "flame-guard",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ember-guard",
+            cooldownRemaining: 0,
+        },
+    ]);
 });

@@ -1,10 +1,12 @@
 import type { CardState, CardEffect,CombatState, CardDefinition } from "../types/game";
 import { cards } from "../data/cards";
 import { enemies } from "../data/enemies";
-import { starterDeck } from "../data/decks";
+import { drawCards, starterDeck } from "../data/decks";
 
 export function startCombat(): CombatState {
     const enemy = enemies[0];
+    const initialDeck = starterDeck.map((card) => ({...card}));
+    const { drawnCards, remainingDeck} = drawCards(initialDeck, 3);
 
     return {
         phase: "player-turn",
@@ -18,7 +20,9 @@ export function startCombat(): CombatState {
                 {...card}
             )),
             statusEffects: [],
-            block: 0
+            block: 0,
+            hand: drawnCards,
+            drawPile: remainingDeck,
         },
 
         enemy: {

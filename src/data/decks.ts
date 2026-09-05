@@ -54,3 +54,46 @@ export function removeCardFromDeck(
         ...deck.slice(index + 1)
     ]
 }
+
+export function cloneDeck(deck: CardState[]): CardState[] {
+    return deck.map((card) => ({...card}))
+}
+export function findCardInDeck(
+    deck: CardState[],
+    cardId: string
+): CardState | undefined {
+    return deck.find((card) => card.cardId === cardId)
+}
+export function drawCard(
+    deck: CardState[],
+): {
+    card: CardState | undefined;
+    remainingDeck: CardState[];
+} {
+    if(deck.length === 0) {
+        return {
+            card: undefined,
+            remainingDeck: []
+        }
+    }
+    const [card, ...remainingDeck] = deck;
+    return {
+        card,
+        remainingDeck
+    }
+}
+export function drawCards(
+    deck: CardState[],
+    count: number
+) : {
+        drawnCards: CardState[];
+        remainingDeck: CardState[];
+    } {
+        const drawnCards = deck.slice(0, count);
+        const remainingDeck = deck.slice(count);
+        
+        return {
+            drawnCards,
+            remainingDeck
+        }
+    }
