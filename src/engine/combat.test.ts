@@ -442,3 +442,80 @@ it("should deal burn damage at the end of the turn", () => {
 
     expect(nextState.enemy.hp).toBe(12);
 });
+it("should reduce burn duration at the end of the turn", () => {
+    const state = startCombat();
+
+    const burnState = {
+        ...state,
+        phase: "enemy-turn" as const,
+        enemy: {
+            ...state.enemy,
+            statusEffects: [
+                {
+                    type: "burn" as const,
+                    amount: 3,
+                    duration: 2,
+                },
+            ],
+        },
+    };
+
+    const nextState = processEndTurn(burnState);
+
+    expect(nextState.enemy.statusEffects).toEqual([
+        {
+            type: "burn",
+            amount: 3,
+            duration: 1,
+        },
+    ]);
+});
+it("should remove burn when duration reaches zero", () => {
+    const state = startCombat();
+
+    const burnState = {
+        ...state,
+        phase: "enemy-turn" as const,
+        enemy: {
+            ...state.enemy,
+            statusEffects: [
+                {
+                    type: "burn" as const,
+                    amount: 3,
+                    duration: 1,
+                },
+            ],
+        },
+    };
+
+    const nextState = processEndTurn(burnState);
+
+    expect(nextState.enemy.statusEffects).toEqual([]);
+});
+/// стаки берна тест
+
+it("should stack multiple burn effects", () => {
+    const state = startCombat();
+
+    const burnState = {
+        ...state,
+        phase: "enemy-turn" as const,
+        enemy: {
+            ...state.enemy,
+            statusEffects: [
+                {
+                    type: "burn" as const,
+                    amount: 3,
+                    duration: 2,
+                },
+                {
+                    type: "burn" as const,
+                    amount: 3,
+                    duration: 2,
+                },
+            ],
+        },
+    };
+
+    expect(burnState.enemy.statusEffects).toHaveLength(2);
+});

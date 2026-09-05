@@ -221,13 +221,20 @@ export function processEndTurn(
     }
 
     const burnDamage = state.enemy.statusEffects
-        .filter((effect) => effect.type === "burn").
-        reduce((total, effect) => total + effect.amount, 0)
+      .filter((effect) => effect.type === "burn")
+      .reduce((total, effect) => total + effect.amount, 0);
 
     const newEnemyHp = Math.max(
         0,
         state.enemy.hp - burnDamage,
-    )
+    );
+
+    const updatedEnemyStatusEffects = state.enemy.statusEffects
+    .map((effect) => ({
+        ...effect,
+        duration: effect.duration - 1,
+    }))
+    .filter((effect) => effect.duration > 0)
 
     const updatedCards = state.player.cards.map(
         (cardState) => ({
@@ -250,7 +257,8 @@ export function processEndTurn(
         enemy: {
             ...state.enemy,
             hp: newEnemyHp,
-            block: 0
+            block: 0,
+            statusEffects: updatedEnemyStatusEffects
         },
         phase: "player-turn",
     };
