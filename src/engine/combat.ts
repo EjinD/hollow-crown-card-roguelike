@@ -1,6 +1,7 @@
-import type { CardState, CardEffect,CombatState } from "../types/game";
+import type { CardState, CardEffect,CombatState, CardDefinition } from "../types/game";
 import { cards } from "../data/cards";
 import { enemies } from "../data/enemies";
+import { starterDeck } from "../data/decks";
 
 export function startCombat(): CombatState {
     const enemy = enemies[0];
@@ -13,21 +14,11 @@ export function startCombat(): CombatState {
             hp: 10,
             maxHp: 10,
             actions: 1,
-            cards: [
-                {
-                    cardId: "fireball",
-                    cooldownRemaining: 0,
-                },
-                {
-                    cardId: "flame-burst",
-                    cooldownRemaining: 0,
-                },
-                {
-                    cardId: "ignite",
-                    cooldownRemaining: 0,
-                }
-            ],
-            statusEffects: []
+            cards: starterDeck.map((card) => (
+                {...card}
+            )),
+            statusEffects: [],
+            block: 0
         },
 
         enemy: {
@@ -54,6 +45,29 @@ export function startCombat(): CombatState {
             hp: Math.max(0, enemy.hp - remainingDamage)
         }
     }
+    function damagePlayer(
+        player: CombatState["player"],
+        damage: number
+    ): CombatState["player"]{
+        const damageToBlock = Math.min(player.block, damage);
+
+        const remainingDamage = damage - damageToBlock;
+        return {
+            ...player,
+            block: player.block - damageToBlock,
+            hp: Math.max(0, player.hp - remainingDamage)
+        }
+    }
+
+    function addEnemyBlock(
+        enemy: CombatState["enemy"],
+        amount: number
+    ): CombatState["enemy"]{
+        return {
+            ...enemy,
+            block: enemy.block + amount
+        }
+    }
 
     function applyCardCooldown(
     cards: CardState[],
@@ -73,29 +87,44 @@ export function startCombat(): CombatState {
 }
 
     export function applyCardEffects(
-        state: CombatState,
-        effects: CardEffect[],
-    ): CombatState {
-        const updatedEnemyStatusEffects = [
-            ...state.enemy.statusEffects
-        ];
+    state: CombatState,
+    effects: CardEffect[],
+): CombatState {
+    let updatedState = state;
 
-        for (const effect of effects) {
-            updatedEnemyStatusEffects.push(
-                {
-                    type:"burn",
-                    amount: effect.amount,
-                    duration: effect.duration
-                }
-            )
+    for (const effect of effects) {
+        if (effect.type === "burn") {
+            updatedState = {
+                ...updatedState,
+                enemy: {
+                    ...updatedState.enemy,
+                    statusEffects: [
+                        ...updatedState.enemy.statusEffects,
+                        {
+                            type: "burn",
+                            amount: effect.amount,
+                            duration: effect.duration,
+                        },
+                    ],
+                },
+            };
         }
-        return {
-            ...state,
-            enemy: {
-                ...state.enemy,
-                statusEffects: updatedEnemyStatusEffects
-            }
+
+        if (effect.type === "block") {
+            updatedState = {
+                ...updatedState,
+                player: {
+                    ...updatedState.player,
+                    block: updatedState.player.block + effect.amount,
+                },
+            };
         }
+    }
+
+    return updatedState;
+}
+    function getCard(cardId: string):CardDefinition | undefined {
+        return cards.find((card) => card.id === cardId)
     }
 
 export function playCard(
@@ -109,7 +138,7 @@ export function playCard(
     if (state.player.actions <= 0) {
         return state;
     }
-    const card = cards.find((card) => card.id === cardId);
+    const card = getCard(cardId);
 
     if (!card) {
         return state
@@ -130,22 +159,27 @@ export function playCard(
    const updatedEnemy = damageEnemy(
     state.enemy,
     card.damage
-   )
+   );
+
+   const updatedCards = applyCardCooldown(
+    state.player.cards,
+    cardId,
+    card.cooldown
+   );
+   const stateWithEffects = applyCardEffects(
+    state,
+    cardEffects,
+   );
+   const updatedPlayer = {
+    ...stateWithEffects.player,
+    actions: state.player.actions - 1,
+    cards: updatedCards,
+   }
 
     if (updatedEnemy.hp === 0) {
-        const updatedCards = applyCardCooldown(
-            state.player.cards,
-            cardId,
-            card.cooldown
-        )
-        const stateWithEffects = applyCardEffects(state, cardEffects)
          return {
             ...state, 
-            player: {
-                ...state.player,
-                actions: state.player.actions - 1,
-                cards: updatedCards
-            },
+            player: updatedPlayer,
             enemy: {
                 ...updatedEnemy,
                 statusEffects: stateWithEffects.enemy.statusEffects
@@ -154,20 +188,11 @@ export function playCard(
         };
     };
 
-    const updatedCards = applyCardCooldown(
-        state.player.cards,
-        cardId,
-        card.cooldown
-    )
-       
-    const stateWithEffects = applyCardEffects(state, cardEffects)
+     
     return {
         ...state,
-         player: {
-            ...state.player,
-            actions: state.player.actions - 1,
-            cards: updatedCards
-        }, enemy: {
+         player: updatedPlayer,
+         enemy: {
             ...updatedEnemy,
             statusEffects: stateWithEffects.enemy.statusEffects
         },
@@ -201,17 +226,16 @@ export function executeEnemyIntent(
   const { intent } = state.enemy;
 
   if (intent.type === "attack") {
-    const newPlayerHp = Math.max(
-      0,
-      state.player.hp - intent.damage,
-    );
+    const updatedPlayer = damagePlayer(
+     state.player,
+     intent.damage,
+);
 
-    if (newPlayerHp === 0) {
+    if (updatedPlayer.hp === 0) {
       return {
         ...state,
         player: {
-          ...state.player,
-          hp: 0,
+          ...updatedPlayer
         },
         enemy: {
           ...state.enemy,
@@ -225,8 +249,7 @@ export function executeEnemyIntent(
     return {
       ...state,
       player: {
-        ...state.player,    
-        hp: newPlayerHp,
+        ...updatedPlayer
       },
       enemy: {
         ...state.enemy,
@@ -238,13 +261,16 @@ export function executeEnemyIntent(
   }
 
   if (intent.type === "block") {
+    const updatedEnemy = addEnemyBlock(
+        state.enemy,
+        intent.amount
+    )
     return {
       ...state,
       enemy: {
-        ...state.enemy,
-        block: state.enemy.block + intent.amount,
+        ...updatedEnemy,
         intentIndex: nextIntentIndex,
-        intent: nextIntent,
+        intent: nextIntent
       },
       phase: "end-turn",
     };
@@ -303,6 +329,7 @@ export function processEndTurn(
         player: {
             ...state.player,
             actions: 1,
+            block: 0,
             cards: updatedCards,
         },
         enemy: {

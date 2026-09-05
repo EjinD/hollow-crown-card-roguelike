@@ -5,7 +5,10 @@ export type CardEffect =
       type: "burn";
       amount: number;
       duration: number
-    };
+    } | {
+        type: "block",
+        amount: number
+    }
 
 export interface CardDefinition {
     id: string;
@@ -28,7 +31,8 @@ export interface PlayerState {
     maxHp: number;
     actions: number;
     cards: CardState[];
-    statusEffects: StatusEffect[]
+    statusEffects: StatusEffect[];
+    block: number;
 }
 export type EnemyIntent = | {
     type: "attack";

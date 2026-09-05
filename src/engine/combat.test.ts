@@ -8,6 +8,7 @@ import {
   processEndTurn,
   applyCardEffects,
 } from "./combat";
+import { starterDeck, addCardToDeck, removeCardFromDeck } from "../data/decks";
 
 describe("Combat", () => {
   it("should start combat with correct initial state", () => {
@@ -953,4 +954,192 @@ it("should reduce enemy block before reducing HP", () => {
 
     expect(result.enemy.block).toBe(0);
     expect(result.enemy.hp).toBe(13);
+});
+it("should switch to the next enemy intent", () => {
+    const state = startCombat();
+
+    const enemyTurnState: CombatState = {
+        ...state,
+        phase: "enemy-turn",
+    };
+
+    const result = executeEnemyIntent(enemyTurnState);
+
+    expect(result.enemy.intentIndex).toBe(1);
+    expect(result.enemy.intent.type).toBe("block");
+});
+it("should reset player block at the end of turn", () => {
+    const state = startCombat();
+
+    const endTurnState: CombatState = {
+        ...state,
+        phase: "end-turn",
+        player: {
+            ...state.player,
+            block: 5,
+        },
+    };
+
+    const result = processEndTurn(endTurnState);
+
+    expect(result.player.block).toBe(0);
+});
+it("should apply block effect to the player", () => {
+    const state = startCombat();
+
+    const result = applyCardEffects(state, [
+        {
+            type: "block",
+            amount: 3,
+        },
+    ]);
+
+    expect(result.player.block).toBe(3);
+});
+it("should apply block when playing a block card", () => {
+    const state = startCombat();
+
+    const result = playCard(state, "flame-guard");
+
+    expect(result.player.block).toBe(3);
+    expect(result.player.actions).toBe(0);
+    expect(result.phase).toBe("enemy-turn");
+});
+it("should apply block effect to flame-guard", () => {
+    const state = startCombat();
+
+    const result = playCard(state, "flame-guard");
+
+    expect(result.player.block).toBe(3);
+});
+it("should reduce player block when enemy attacks", () => {
+    const state = startCombat();
+
+    const blockState = playCard(state, "flame-guard");
+
+    const result = executeEnemyIntent(blockState);
+
+    expect(result.player.block).toBe(1);
+    expect(result.player.hp).toBe(10);
+});
+it("should deal damage and apply block from the same card", () => {
+    const state = startCombat();
+
+    const result = playCard(state, "ember-guard");
+
+    expect(result.enemy.hp).toBe(13);
+    expect(result.player.block).toBe(2);
+    expect(result.player.actions).toBe(0);
+    expect(result.phase).toBe("enemy-turn");
+});
+it("should create a fresh copy of the starter deck", () => {
+    const state = startCombat();
+
+    expect(state.player.cards).not.toBe(starterDeck);
+});
+describe("Deck", () => {
+    it("should add a card to the deck", () => {
+        const deck = [
+            {
+                cardId: "fireball",
+                cooldownRemaining: 0,
+            },
+        ];
+
+        const result = addCardToDeck(deck, "ignite");
+
+        expect(result).toEqual([
+            {
+                cardId: "fireball",
+                cooldownRemaining: 0,
+            },
+            {
+                cardId: "ignite",
+                cooldownRemaining: 0,
+            },
+        ]);
+    });
+});
+it("should not mutate the original deck", () => {
+    const deck = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    addCardToDeck(deck, "ignite");
+
+    expect(deck).toEqual([
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+    ]);
+});
+it("should remove a card from the deck", () => {
+    const deck = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "flame-burst",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const result = removeCardFromDeck(deck, "ignite");
+
+    expect(result).toEqual([
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "flame-burst",
+            cooldownRemaining: 0,
+        },
+    ]);
+});
+it("should not mutate the original deck when removing a card", () => {
+    const deck = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    removeCardFromDeck(deck, "ignite");
+
+    expect(deck).toEqual([
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+    ]);
+});
+it("should not add an unknown card to the deck", () => {
+    const deck = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const result = addCardToDeck(deck, "unknown-card");
+
+    expect(result).toEqual(deck);
 });

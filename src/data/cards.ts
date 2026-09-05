@@ -24,5 +24,28 @@ export const cards: CardDefinition[] = [
                 duration: 2
             }
         ]
+    }, 
+    {
+        id: "flame-guard",
+        name: "Flame guard",
+        damage: 0,
+        cooldown: 1,
+        effects: [
+            {
+                type:"block",
+                amount: 3,
+            }
+        ]
+    }, {
+        id: "ember-guard",
+        name: "Ember guard",
+        damage: 2,
+        cooldown: 1,
+        effects: [
+            {
+                type: "block",
+                amount: 2,
+            }
+        ]
     }
 ]
