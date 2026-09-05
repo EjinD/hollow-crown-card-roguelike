@@ -1,9 +1,12 @@
+import { cards } from "../data/cards";
 import { describe, expect, it } from "vitest";
+import type { CombatState } from "../types/game";
 import {
   startCombat,
   playCard,
   executeEnemyIntent,
   processEndTurn,
+  applyCardEffects,
 } from "./combat";
 
 describe("Combat", () => {
@@ -114,7 +117,7 @@ describe("Combat", () => {
     );
 
     expect(afterEnemyAttack.player.hp).toBe(8);
-    expect(afterEnemyAttack.phase).toBe("enemy-turn");
+    expect(afterEnemyAttack.phase).toBe("end-turn");
   });
 
   it("should process the end of the turn", () => {
@@ -264,7 +267,7 @@ it("should apply block when enemy intent is block", () => {
 
     expect(nextState.enemy.block).toBe(3);
     expect(nextState.player.hp).toBe(10);
-    expect(nextState.phase).toBe("enemy-turn");
+    expect(nextState.phase).toBe("end-turn");
 });
 it("should use enemy block before reducing HP", () => {
     const state = startCombat();
@@ -327,7 +330,7 @@ it("should reset enemy block at the end of the turn", () => {
 
     const blockState = {
         ...state,
-        phase: "enemy-turn" as const,
+        phase: "end-turn" as const,
         enemy: {
             ...state.enemy,
             block: 3,
@@ -424,7 +427,7 @@ it("should deal burn damage at the end of the turn", () => {
 
     const burnState = {
         ...state,
-        phase: "enemy-turn" as const,
+        phase: "end-turn" as const,
         enemy: {
             ...state.enemy,
             hp: 15,
@@ -447,7 +450,7 @@ it("should reduce burn duration at the end of the turn", () => {
 
     const burnState = {
         ...state,
-        phase: "enemy-turn" as const,
+        phase: "end-turn" as const,
         enemy: {
             ...state.enemy,
             statusEffects: [
@@ -475,7 +478,7 @@ it("should remove burn when duration reaches zero", () => {
 
     const burnState = {
         ...state,
-        phase: "enemy-turn" as const,
+        phase: "end-turn" as const,
         enemy: {
             ...state.enemy,
             statusEffects: [
@@ -518,4 +521,436 @@ it("should stack multiple burn effects", () => {
     };
 
     expect(burnState.enemy.statusEffects).toHaveLength(2);
+});
+it("should deal combined damage from multiple burn effects", () => {
+    const state = startCombat();
+
+    const burnState = {
+        ...state,
+        phase: "end-turn" as const,
+        enemy: {
+            ...state.enemy,
+            hp: 15,
+            statusEffects: [
+                {
+                    type: "burn" as const,
+                    amount: 3,
+                    duration: 2,
+                },
+                {
+                    type: "burn" as const,
+                    amount: 3,
+                    duration: 2,
+                },
+            ],
+        },
+    };
+
+    const nextState = processEndTurn(burnState);
+
+    expect(nextState.enemy.hp).toBe(9);
+});
+it("should not allow playing a card after victory", () => {
+    const state = startCombat();
+
+    const victoryState = {
+        ...state,
+        phase: "victory" as const,
+    };
+
+    const nextState = playCard(victoryState, "fireball");
+
+    expect(nextState).toEqual(victoryState);
+});
+it("should not allow playing a card after defeat", () => {
+    const state = startCombat();
+
+    const defeatState = {
+        ...state,
+        phase: "defeat" as const,
+    };
+
+    const nextState = playCard(defeatState, "fireball");
+
+    expect(nextState).toEqual(defeatState);
+});
+it("should not execute enemy intent after victory", () => {
+    const state = startCombat();
+
+    const victoryState = {
+        ...state,
+        phase: "victory" as const,
+    };
+
+    const nextState = executeEnemyIntent(victoryState);
+
+    expect(nextState).toEqual(victoryState);
+});
+it("should not execute enemy intent after defeat", () => {
+    const state = startCombat();
+
+    const defeatState = {
+        ...state,
+        phase: "defeat" as const,
+    };
+
+    const nextState = executeEnemyIntent(defeatState);
+
+    expect(nextState).toEqual(defeatState);
+});
+it("should not reduce player HP below zero", () => {
+    const state = startCombat();
+
+    const lowHpState = {
+        ...state,
+        phase: "enemy-turn" as const,
+        player: {
+            ...state.player,
+            hp: 1,
+        },
+        enemy: {
+            ...state.enemy,
+            intent: {
+                type: "attack" as const,
+                damage: 5,
+            },
+        },
+    };
+
+    const nextState = executeEnemyIntent(lowHpState);
+
+    expect(nextState.player.hp).toBe(0);
+    expect(nextState.phase).toBe("defeat");
+});
+it("should not reduce enemy HP below zero", () => {
+    const state = startCombat();
+
+    const lowHpState = {
+        ...state,
+        enemy: {
+            ...state.enemy,
+            hp: 1,
+        },
+    };
+
+    const nextState = playCard(lowHpState, "fireball");
+
+    expect(nextState.enemy.hp).toBe(0);
+    expect(nextState.phase).toBe("victory");
+});
+it("should break enemy block and kill the enemy with remaining damage", () => {
+    const state = startCombat();
+
+    const lowHpBlockedState = {
+        ...state,
+        enemy: {
+            ...state.enemy,
+            hp: 1,
+            block: 1,
+        },
+    };
+
+    const nextState = playCard(lowHpBlockedState, "fireball");
+
+    expect(nextState.enemy.hp).toBe(0);
+    expect(nextState.enemy.block).toBe(0);
+    expect(nextState.phase).toBe("victory");
+});
+it("should fully absorb damage with enemy block", () => {
+    const state = startCombat();
+
+    const blockedState = {
+        ...state,
+        enemy: {
+            ...state.enemy,
+            hp: 15,
+            block: 3,
+        },
+    };
+
+    const nextState = playCard(blockedState, "fireball");
+
+    expect(nextState.enemy.hp).toBe(15);
+    expect(nextState.enemy.block).toBe(1);
+    expect(nextState.player.actions).toBe(0);
+    expect(nextState.phase).toBe("enemy-turn");
+});
+it("should win if burn kills enemy at end of turn", () => {
+    const state = startCombat();
+
+    const burningState = {
+        ...state,
+        phase: "end-turn" as const,
+        enemy: {
+            ...state.enemy,
+            hp: 3,
+            statusEffects: [
+                {
+                    type: "burn" as const,
+                    amount: 3,
+                    duration: 1,
+                },
+            ],
+        },
+    };
+
+    const nextState = processEndTurn(burningState);
+
+    expect(nextState.enemy.hp).toBe(0);
+    expect(nextState.phase).toBe("victory");
+});
+it("should spend player action when lethal card is played", () => {
+    const state = startCombat();
+
+    const weakEnemyState = {
+        ...state,
+        enemy: {
+            ...state.enemy,
+            hp: 1,
+        },
+    };
+
+    const nextState = playCard(weakEnemyState, "fireball");
+
+    expect(nextState.enemy.hp).toBe(0);
+    expect(nextState.player.actions).toBe(0);
+    expect(nextState.phase).toBe("victory");
+});
+it("should apply cooldown when lethal card is played", () => {
+    const state = startCombat();
+
+    const weakEnemyState = {
+        ...state,
+        enemy: {
+            ...state.enemy,
+            hp: 1,
+        },
+    };
+
+    const nextState = playCard(weakEnemyState, "flame-burst");
+
+    const flameBurst = nextState.player.cards.find(
+        (card) => card.cardId === "flame-burst",
+    );
+
+    expect(flameBurst?.cooldownRemaining).toBe(2);
+    expect(nextState.phase).toBe("victory");
+});
+it("should apply effects when lethal card is played", () => {
+    const state = startCombat();
+
+    const weakEnemyState = {
+        ...state,
+        enemy: {
+            ...state.enemy,
+            hp: 1,
+        },
+    };
+
+    const nextState = playCard(weakEnemyState, "ignite");
+
+    expect(nextState.enemy.hp).toBe(0);
+    expect(nextState.enemy.statusEffects).toEqual([
+        {
+            type: "burn",
+            amount: 3,
+            duration: 2,
+        },
+    ]);
+    expect(nextState.phase).toBe("victory");
+});
+it("should not allow playing another card after lethal attack", () => {
+    const state = startCombat();
+
+    const weakEnemyState = {
+        ...state,
+        enemy: {
+            ...state.enemy,
+            hp: 1,
+        },
+    };
+
+    const victoryState = playCard(weakEnemyState, "fireball");
+
+    const nextState = playCard(victoryState, "ignite");
+
+    expect(nextState).toEqual(victoryState);
+});
+it("should not reduce cooldown below zero", () => {
+    const state = startCombat();
+
+    const cooldownState = {
+        ...state,
+        phase: "enemy-turn" as const,
+        player: {
+            ...state.player,
+            cards: state.player.cards.map((card) =>
+                card.cardId === "fireball"
+                    ? { ...card, cooldownRemaining: 0 }
+                    : card
+            ),
+        },
+    };
+
+    const nextState = processEndTurn(cooldownState);
+
+    const fireball = nextState.player.cards.find(
+        (card) => card.cardId === "fireball",
+    );
+
+    expect(fireball?.cooldownRemaining).toBe(0);
+});
+it("should not continue combat after player defeat", () => {
+    const state = startCombat();
+
+    const enemyTurnState = {
+        ...state,
+        phase: "enemy-turn" as const,
+        player: {
+            ...state.player,
+            hp: 2,
+        },
+        enemy: {
+            ...state.enemy,
+            intent: {
+                type: "attack" as const,
+                damage: 2,
+            },
+        },
+    };
+
+    const defeatState = executeEnemyIntent(enemyTurnState);
+
+    expect(defeatState.player.hp).toBe(0);
+    expect(defeatState.phase).toBe("defeat");
+
+    const nextState = processEndTurn(defeatState);
+
+    expect(nextState).toEqual(defeatState);
+});
+it("should not execute enemy intent twice in the same turn", () => {
+    const state = startCombat();
+
+    const enemyTurnState = {
+        ...state,
+        phase: "enemy-turn" as const,
+    };
+
+    const afterFirstIntent = executeEnemyIntent(enemyTurnState);
+
+    const afterSecondIntent = executeEnemyIntent(afterFirstIntent);
+
+    expect(afterSecondIntent).toEqual(afterFirstIntent);
+});
+it("should not process end turn after burn victory", () => {
+    const state = startCombat();
+
+    const burningState = {
+        ...state,
+        phase: "end-turn" as const,
+        enemy: {
+            ...state.enemy,
+            hp: 3,
+            statusEffects: [
+                {
+                    type: "burn" as const,
+                    amount: 3,
+                    duration: 2,
+                },
+            ],
+        },
+    };
+
+    const victoryState = processEndTurn(burningState);
+    const afterSecondProcess = processEndTurn(victoryState);
+
+    expect(victoryState.phase).toBe("victory");
+    expect(afterSecondProcess).toEqual(victoryState);
+});
+it("should apply burn effect from card", () => {
+    const state = startCombat();
+
+    const card = cards.find((card) => card.id === "ignite");
+
+    if (!card) {
+        throw new Error("Ignite card not found");
+    }
+
+    const nextState = applyCardEffects(state, card.effects ?? []);
+
+    expect(nextState.enemy.statusEffects).toEqual([
+        {
+            type: "burn",
+            amount: 3,
+            duration: 2,
+        },
+    ]);
+});
+it("should preserve existing effects when applying a new card effect", () => {
+    const state = startCombat();
+
+    const stateWithBurn = {
+        ...state,
+        enemy: {
+            ...state.enemy,
+            statusEffects: [
+                {
+                    type: "burn" as const,
+                    amount: 2,
+                    duration: 1,
+                },
+            ],
+        },
+    };
+
+    const nextState = applyCardEffects(stateWithBurn, [
+        {
+            type: "burn",
+            amount: 3,
+            duration: 2,
+        },
+    ]);
+
+    expect(nextState.enemy.statusEffects).toEqual([
+        {
+            type: "burn",
+            amount: 2,
+            duration: 1,
+        },
+        {
+            type: "burn",
+            amount: 3,
+            duration: 2,
+        },
+    ]);
+});
+it("should apply card effects when playing a card", () => {
+    const state = startCombat();
+
+    const nextState = playCard(state, "ignite");
+
+    expect(nextState.enemy.statusEffects).toEqual([
+        {
+            type: "burn",
+            amount: 3,
+            duration: 2,
+        },
+    ]);
+});
+it("should reduce enemy block before reducing HP", () => {
+    const state = startCombat();
+
+    const stateWithBlock: CombatState = {
+        ...state,
+        enemy: {
+            ...state.enemy,
+            block: 3,
+            hp: 15,
+        },
+    };
+
+    const result = playCard(stateWithBlock, "flame-burst");
+
+    expect(result.enemy.block).toBe(0);
+    expect(result.enemy.hp).toBe(13);
 });

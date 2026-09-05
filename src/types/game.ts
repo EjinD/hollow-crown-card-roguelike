@@ -1,4 +1,4 @@
-export type CombatPhase = | "player-turn" | "enemy-turn" | "victory" | "defeat";
+export type CombatPhase = | "player-turn" | "enemy-turn" | "end-turn" | "victory" | "defeat";
 
 export type CardEffect =
   | {
