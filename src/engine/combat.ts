@@ -1,7 +1,7 @@
-import type { CardState, CardEffect,CombatState, CardDefinition } from "../types/game";
+import type {CardEffect,CombatState, CardDefinition, PlayerState } from "../types/game";
 import { cards } from "../data/cards";
 import { enemies } from "../data/enemies";
-import { drawCards, starterDeck } from "../data/decks";
+import { drawCards, drawCardsToHand, starterDeck } from "../data/deck";
 
 export function startCombat(): CombatState {
     const enemy = enemies[0];
@@ -23,6 +23,8 @@ export function startCombat(): CombatState {
             block: 0,
             hand: drawnCards,
             drawPile: remainingDeck,
+            discardPile: [],
+            exiledCards: []
         },
 
         enemy: {
@@ -73,22 +75,6 @@ export function startCombat(): CombatState {
         }
     }
 
-    function applyCardCooldown(
-    cards: CardState[],
-    cardId: string,
-    cooldown: number,
-): CardState[] {
-    return cards.map((cardState) => {
-        if (cardState.cardId !== cardId) {
-            return cardState;
-        }
-
-        return {
-            ...cardState,
-            cooldownRemaining: cooldown,
-        };
-    });
-}
 
     export function applyCardEffects(
     state: CombatState,
@@ -130,6 +116,41 @@ export function startCombat(): CombatState {
     function getCard(cardId: string):CardDefinition | undefined {
         return cards.find((card) => card.id === cardId)
     }
+export function moveCardAfterPlay(
+    player: PlayerState,
+    cardId: string,
+    cooldown: number,): PlayerState {
+        const card = player.hand.find((card) => card.cardId === cardId);
+
+        if (!card) {
+            return player;
+        }
+        const remainingHand = player.hand.filter((card) => card.cardId !== cardId);
+        if (cooldown > 0) {
+            return {
+                ...player,
+                hand: remainingHand,
+                exiledCards: [
+                    ...player.exiledCards,
+                    {
+                        cardId, 
+                        cooldownRemaining: cooldown
+                    }
+                ]
+            }
+        }
+        return {
+            ...player,
+            hand: remainingHand,
+            discardPile: [
+                ...player.discardPile,
+                {
+                    cardId,
+                    cooldownRemaining: 0
+                }
+            ]
+        }
+    }
 
 export function playCard(
     state: CombatState,
@@ -164,26 +185,27 @@ export function playCard(
     state.enemy,
     card.damage
    );
+   
 
-   const updatedCards = applyCardCooldown(
-    state.player.hand,
-    cardId,
-    card.cooldown
-   );
    const stateWithEffects = applyCardEffects(
     state,
     cardEffects,
    );
-   const updatedPlayer = {
-    ...stateWithEffects.player,
-    actions: state.player.actions - 1,
-    cards: updatedCards,
+   const updatedPlayer = moveCardAfterPlay(
+    stateWithEffects.player,
+    cardId,
+    card.cooldown
+   );
+   const playerAfterAction = {
+    ...updatedPlayer,
+    actions: state.player.actions - 1
    }
+  
 
     if (updatedEnemy.hp === 0) {
          return {
             ...state, 
-            player: updatedPlayer,
+            player: playerAfterAction,
             enemy: {
                 ...updatedEnemy,
                 statusEffects: stateWithEffects.enemy.statusEffects
@@ -195,7 +217,7 @@ export function playCard(
      
     return {
         ...state,
-         player: updatedPlayer,
+         player: playerAfterAction,
          enemy: {
             ...updatedEnemy,
             statusEffects: stateWithEffects.enemy.statusEffects
@@ -317,7 +339,7 @@ export function processEndTurn(
     }))
     .filter((effect) => effect.duration > 0)
 
-    const updatedCards = state.player.cards.map(
+    const updatedExiledCards = state.player.exiledCards.map(
         (cardState) => ({
             ...cardState,
             cooldownRemaining: Math.max(
@@ -326,6 +348,31 @@ export function processEndTurn(
             ),
         }),
     );
+    
+
+    const returningCards = updatedExiledCards.filter(
+        (cardState) => cardState.cooldownRemaining === 0
+    );
+    const remainingExiledCards = updatedExiledCards.filter(
+        (cardState) => cardState.cooldownRemaining > 0
+    );
+    const handAfterReturning = [
+        ...state.player.hand,
+        ...returningCards
+    ]
+  
+    const cardsToDraw = Math.max(
+        0,
+        3 - state.player.hand.length
+    );
+    const { 
+        hand: updatedHand,
+        drawPile: updatedDrawPile
+    } = drawCardsToHand(
+        handAfterReturning,
+        state.player.drawPile,
+        cardsToDraw
+    )
 
     return {
         ...state,
@@ -334,7 +381,9 @@ export function processEndTurn(
             ...state.player,
             actions: 1,
             block: 0,
-            cards: updatedCards,
+            hand: updatedHand,
+            drawPile: updatedDrawPile,
+            exiledCards: remainingExiledCards
         },
         enemy: {
             ...state.enemy,

@@ -7,6 +7,7 @@ import {
   executeEnemyIntent,
   processEndTurn,
   applyCardEffects,
+  moveCardAfterPlay
 } from "./combat";
 import {
     starterDeck,
@@ -15,8 +16,30 @@ import {
     cloneDeck,
     findCardInDeck,
     drawCard,
-    drawCards
-} from "../data/decks";
+    drawCards,
+    drawCardsToHand,
+    shuffleDeck
+} from "../data/deck";
+
+function addCardToHand(
+    state: CombatState,
+    cardId: string,
+): CombatState {
+    return {
+        ...state,
+        player: {
+            ...state.player,
+            hand: [
+                ...state.player.hand,
+                {
+                    cardId,
+                    cooldownRemaining: 0,
+                },
+            ],
+        },
+    };
+}
+//затычка вренная
 
 describe("Combat", () => {
   it("should start combat with correct initial state", () => {
@@ -150,43 +173,37 @@ describe("Combat", () => {
     expect(nextTurn.phase).toBe("player-turn");
   });
 
-  it("should apply cooldown after playing Flame Burst", () => {
-    const state = startCombat();
-
-    const nextState = playCard(
-      state,
-      "flame-burst",
-    );
-
-    expect(
-      nextState.player.cards[1].cooldownRemaining,
-    ).toBe(2);
-  });
-
-  it("should reduce cooldown at the end of the turn", () => {
+it("should reduce cooldown at the end of the turn", () => {
     const state = startCombat();
 
     const afterFlameBurst = playCard(
-      state,
-      "flame-burst",
+        state,
+        "flame-burst",
     );
 
-    expect(
-      afterFlameBurst.player.cards[1].cooldownRemaining,
-    ).toBe(2);
+    const flameBurst = afterFlameBurst.player.exiledCards.find(
+        (card) => card.cardId === "flame-burst",
+    );
+
+    expect(flameBurst?.cooldownRemaining).toBe(2);
 
     const afterEnemyAttack = executeEnemyIntent(
-      afterFlameBurst,
+        afterFlameBurst,
     );
 
     const nextTurn = processEndTurn(
-      afterEnemyAttack,
+        afterEnemyAttack,
     );
 
+    const flameBurstAfterTurn =
+        nextTurn.player.exiledCards.find(
+            (card) => card.cardId === "flame-burst",
+        );
+
     expect(
-      nextTurn.player.cards[1].cooldownRemaining,
+        flameBurstAfterTurn?.cooldownRemaining,
     ).toBe(1);
-  });
+});
 
   it("should not allow playing a card while it is on cooldown", () => {
     const state = startCombat();
@@ -205,12 +222,20 @@ describe("Combat", () => {
     );
 
     const stateBeforeSecondUse = {
-      ...nextTurn,
-      player: {
-        ...nextTurn.player,
-        actions: 1,
-      },
-    };
+        ...nextTurn,
+        player: {
+    ...nextTurn.player,
+    actions: 1,
+    hand: nextTurn.player.hand.map((card) =>
+      card.cardId === "flame-burst"
+        ? {
+            ...card,
+            cooldownRemaining: 1,
+          }
+        : card,
+    ),
+  },
+};
 
     const result = playCard(
       stateBeforeSecondUse,
@@ -219,41 +244,51 @@ describe("Combat", () => {
 
     expect(result).toEqual(stateBeforeSecondUse);
   });
-
-  it("should reduce cooldown from 1 to 0", () => {
+it("should reduce cooldown from 1 to 0", () => {
     const state = startCombat();
 
     const afterFlameBurst = playCard(
-      state,
-      "flame-burst",
+        state,
+        "flame-burst",
     );
 
     const afterFirstEnemyAttack = executeEnemyIntent(
-      afterFlameBurst,
+        afterFlameBurst,
     );
 
     const afterFirstEndTurn = processEndTurn(
-      afterFirstEnemyAttack,
+        afterFirstEnemyAttack,
     );
 
+    const flameBurstAfterFirstTurn =
+        afterFirstEndTurn.player.exiledCards.find(
+            (card) => card.cardId === "flame-burst",
+        );
+
     expect(
-      afterFirstEndTurn.player.cards[1].cooldownRemaining,
+        flameBurstAfterFirstTurn?.cooldownRemaining,
     ).toBe(1);
 
     const afterSecondEnemyAttack =
-      executeEnemyIntent({
-        ...afterFirstEndTurn,
-        phase: "enemy-turn",
-      });
+        executeEnemyIntent({
+            ...afterFirstEndTurn,
+            phase: "enemy-turn",
+        });
 
     const afterSecondEndTurn = processEndTurn(
-      afterSecondEnemyAttack,
+        afterSecondEnemyAttack,
     );
 
+    const flameBurstAfterSecondTurn =
+        afterSecondEndTurn.player.hand.find(
+            (card) => card.cardId === "flame-burst",
+        );
+
     expect(
-      afterSecondEndTurn.player.cards[1].cooldownRemaining,
+        flameBurstAfterSecondTurn?.cooldownRemaining,
     ).toBe(0);
-  });
+});
+
 });
 it("should apply block when enemy intent is block", () => {
     const state = startCombat();
@@ -738,9 +773,9 @@ it("should apply cooldown when lethal card is played", () => {
 
     const nextState = playCard(weakEnemyState, "flame-burst");
 
-    const flameBurst = nextState.player.cards.find(
-        (card) => card.cardId === "flame-burst",
-    );
+    const flameBurst = nextState.player.exiledCards.find(
+    (card) => card.cardId === "flame-burst",
+);
 
     expect(flameBurst?.cooldownRemaining).toBe(2);
     expect(nextState.phase).toBe("victory");
@@ -1007,7 +1042,15 @@ it("should apply block effect to the player", () => {
 it("should apply block when playing a block card", () => {
     const state = startCombat();
 
-    const result = playCard(state, "flame-guard");
+    const stateWithCard = addCardToHand(
+        state,
+        "flame-guard",
+    );
+
+    const result = playCard(
+        stateWithCard,
+        "flame-guard",
+    );
 
     expect(result.player.block).toBe(3);
     expect(result.player.actions).toBe(0);
@@ -1016,14 +1059,26 @@ it("should apply block when playing a block card", () => {
 it("should apply block effect to flame-guard", () => {
     const state = startCombat();
 
-    const result = playCard(state, "flame-guard");
+    const stateWithCard = addCardToHand(
+        state,
+        "flame-guard"
+    )
+
+    const result = playCard(stateWithCard, "flame-guard");
 
     expect(result.player.block).toBe(3);
 });
 it("should reduce player block when enemy attacks", () => {
     const state = startCombat();
 
-    const blockState = playCard(state, "flame-guard");
+    const stateWithCard = addCardToHand(
+        state,
+        "flame-guard"
+    );
+
+    const blockState = playCard(
+        stateWithCard, 
+        "flame-guard");
 
     const result = executeEnemyIntent(blockState);
 
@@ -1032,8 +1087,13 @@ it("should reduce player block when enemy attacks", () => {
 });
 it("should deal damage and apply block from the same card", () => {
     const state = startCombat();
+    
+    const stateWithCard = addCardToHand(
+        state,
+        "ember-guard"
+    )
 
-    const result = playCard(state, "ember-guard");
+    const result = playCard(stateWithCard, "ember-guard");
 
     expect(result.enemy.hp).toBe(13);
     expect(result.player.block).toBe(2);
@@ -1342,12 +1402,20 @@ it("should draw three cards into the starting hand", () => {
         },
     ]);
 });
-it("should play a card from the player's hand", () => {
+it("should move a played normal card to discard pile", () => {
     const state = startCombat();
 
-    const result = playCard(state, "fireball");
+    const result = playCard(
+        state,
+        "fireball",
+    );
 
-    expect(result.player.hand).toContainEqual({
+    expect(result.player.hand).not.toContainEqual({
+        cardId: "fireball",
+        cooldownRemaining: 0,
+    });
+
+    expect(result.player.discardPile).toContainEqual({
         cardId: "fireball",
         cooldownRemaining: 0,
     });
@@ -1371,4 +1439,202 @@ it("should not play a card that is not in the player's hand", () => {
     );
 
     expect(result).toEqual(stateWithoutFireball);
+});
+it("should move a cooldown card to exile after playing", () => {
+    const state = startCombat();
+
+    const stateWithCard = addCardToHand(
+        state,
+        "flame-burst",
+    );
+
+    const result = moveCardAfterPlay(
+        stateWithCard.player,
+        "flame-burst",
+        2,
+    );
+
+    expect(result.exiledCards).toEqual([
+        {
+            cardId: "flame-burst",
+            cooldownRemaining: 2,
+        },
+    ]);
+});
+it("should move Flame Burst to exile after playing it", () => {
+    const state = startCombat();
+
+    const result = playCard(
+        state,
+        "flame-burst",
+    );
+
+    expect(result.player.hand).not.toContainEqual({
+        cardId: "flame-burst",
+        cooldownRemaining: 2,
+    });
+
+    expect(result.player.exiledCards).toContainEqual({
+        cardId: "flame-burst",
+        cooldownRemaining: 2,
+    });
+});
+it("should move a normal card to discard pile after playing", () => {
+    const state = startCombat();
+
+    const result = playCard(
+        state,
+        "fireball",
+    );
+
+    expect(result.player.hand).not.toContainEqual({
+        cardId: "fireball",
+        cooldownRemaining: 0,
+    });
+
+    expect(result.player.discardPile).toContainEqual({
+        cardId: "fireball",
+        cooldownRemaining: 0,
+    });
+});
+it("should draw cards into hand", () => {
+    const hand = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const drawPile = [
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "flame-burst",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "flame-guard",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const result = drawCardsToHand(
+        hand,
+        drawPile,
+        2,
+    );
+
+    expect(result.hand).toEqual([
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "flame-burst",
+            cooldownRemaining: 0,
+        },
+    ]);
+
+    expect(result.drawPile).toEqual([
+        {
+            cardId: "flame-guard",
+            cooldownRemaining: 0,
+        },
+    ]);
+});
+it("should not mutate hand or draw pile when drawing cards", () => {
+    const hand = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const drawPile = [
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    drawCardsToHand(hand, drawPile, 1);
+
+    expect(hand).toEqual([
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+    ]);
+
+    expect(drawPile).toEqual([
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+    ]);
+});
+it("should draw cards at the start of a new player turn", () => {
+    const state = startCombat();
+
+    const stateWithSmallHand = {
+        ...state,
+        phase: "end-turn" as const,
+        player: {
+            ...state.player,
+            hand: state.player.hand.slice(0, 1),
+        },
+    };
+
+    const result = processEndTurn(stateWithSmallHand);
+
+    expect(result.player.hand).toHaveLength(3);
+});
+it("should remove drawn cards from the draw pile", () => {
+    const state = startCombat();
+
+    const stateWithSmallHand = {
+        ...state,
+        phase: "end-turn" as const,
+        player: {
+            ...state.player,
+            hand: state.player.hand.slice(0, 1),
+        },
+    };
+
+    const initialDrawPileSize =
+        stateWithSmallHand.player.drawPile.length;
+
+    const result = processEndTurn(stateWithSmallHand);
+
+    expect(result.player.drawPile.length).toBe(
+        initialDrawPileSize - 2,
+    );
+});
+it("should create a shuffled copy of the deck", () => {
+    const deck = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "flame-burst",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const result = shuffleDeck(deck);
+
+    expect(result).toHaveLength(3);
+    expect(result).toEqual(expect.arrayContaining(deck));
+    expect(result).not.toBe(deck);
 });

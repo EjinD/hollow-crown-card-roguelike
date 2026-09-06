@@ -33,8 +33,10 @@ export interface PlayerState {
     cards: CardState[];
     statusEffects: StatusEffect[];
     block: number;
-    drawPile: CardState[]
-    hand: CardState[]
+    drawPile: CardState[];
+    hand: CardState[];
+    exiledCards: CardState[];
+    discardPile: CardState[];
 }
 export type EnemyIntent = | {
     type: "attack";

@@ -97,3 +97,39 @@ export function drawCards(
             remainingDeck
         }
     }
+    export function drawCardsToHand(
+        hand: CardState[],
+        drawPile: CardState[],
+        count: number,
+    ): {
+        hand: CardState[];
+        drawPile: CardState[];
+    } {
+        const { drawnCards, remainingDeck} = drawCards(
+            drawPile,
+            count,
+        );
+        return {
+            hand: [
+                ...hand,
+                ...drawnCards,
+            ],
+            drawPile: remainingDeck
+            
+        }
+    }
+    export function shuffleDeck(
+        deck: CardState[],
+    ): CardState[] {
+        const shuffled = [...deck];
+
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+
+            [shuffled[i], shuffled[j]] = [
+                shuffled[j],
+                shuffled[i],
+            ];
+        }
+        return shuffled
+    }
