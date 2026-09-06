@@ -147,7 +147,7 @@ export function playCard(
     if (!card) {
         return state
     }
-    const cardState = state.player.cards.find(
+    const cardState = state.player.hand.find(
         (cardState) => cardState.cardId === cardId,
     );
 
@@ -166,7 +166,7 @@ export function playCard(
    );
 
    const updatedCards = applyCardCooldown(
-    state.player.cards,
+    state.player.hand,
     cardId,
     card.cooldown
    );

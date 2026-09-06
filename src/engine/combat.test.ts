@@ -1342,3 +1342,33 @@ it("should draw three cards into the starting hand", () => {
         },
     ]);
 });
+it("should play a card from the player's hand", () => {
+    const state = startCombat();
+
+    const result = playCard(state, "fireball");
+
+    expect(result.player.hand).toContainEqual({
+        cardId: "fireball",
+        cooldownRemaining: 0,
+    });
+});
+it("should not play a card that is not in the player's hand", () => {
+    const state = startCombat();
+
+    const stateWithoutFireball = {
+        ...state,
+        player: {
+            ...state.player,
+            hand: state.player.hand.filter(
+                (card) => card.cardId !== "fireball",
+            ),
+        },
+    };
+
+    const result = playCard(
+        stateWithoutFireball,
+        "fireball",
+    );
+
+    expect(result).toEqual(stateWithoutFireball);
+});
