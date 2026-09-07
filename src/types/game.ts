@@ -104,4 +104,16 @@ export interface RunState {
   relics: string[];
   upgrades: string[];
   pendingReward: CombatReward | null;
+  map: MapState;
+}
+export type MapNodeType = | "battle" | "elite" | "event" | "boss" | "shop" 
+export interface MapNode {
+    id: string;
+    type: MapNodeType;
+    enemyId?: string;
+    nextNodeIds: string[];
+}
+export interface MapState {
+    nodes: MapNode[];
+    currentNodeId: string;
 }
