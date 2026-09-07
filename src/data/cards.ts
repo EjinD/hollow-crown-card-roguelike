@@ -3,31 +3,30 @@ export const cards: CardDefinition[] = [
     {
     id: "fireball",
     name: "Fireball",
-    damage: 2,
     cooldown: 0,
+    effects: [{ type: "damage", amount: 2 }],
 },
 {
     id: "flame-burst",
     name: "Flame Burst",
-    damage: 5,
     cooldown: 2,
+    effects: [{ type: "damage", amount: 5 }],
 },
 {
     id: "ember-strike",
     name: "Ember Strike",
-    damage: 3,
     cooldown: 0,
+    effects: [{ type: "damage", amount: 3 }],
 },
 {
     id: "inferno",
     name: "Inferno",
-    damage: 7,
     cooldown: 3,
+    effects: [{ type: "damage", amount: 7 }],
 },
 {
     id: "flame-guard",
     name: "Flame Guard",
-    damage: 0,
     cooldown: 1,
     effects: [
         {
@@ -39,7 +38,6 @@ export const cards: CardDefinition[] = [
 {
     id: "ember-wall",
     name: "Ember Wall",
-    damage: 0,
     cooldown: 0,
     effects: [
         {
@@ -51,9 +49,12 @@ export const cards: CardDefinition[] = [
 {
     id: "ember-guard",
     name: "Ember Guard",
-    damage: 2,
     cooldown: 1,
     effects: [
+        {
+            type: "damage",
+            amount: 2,
+        },
         {
             type: "block",
             amount: 2,
@@ -63,9 +64,12 @@ export const cards: CardDefinition[] = [
 {
     id: "ignite",
     name: "Ignite",
-    damage: 1,
     cooldown: 1,
     effects: [
+        {
+            type: "damage",
+            amount: 1,
+        },
         {
             type: "burn",
             amount: 3,
@@ -76,9 +80,12 @@ export const cards: CardDefinition[] = [
 {
     id: "scorch",
     name: "Scorch",
-    damage: 2,
     cooldown: 0,
     effects: [
+        {
+            type: "damage",
+            amount: 2,
+        },
         {
             type: "burn",
             amount: 2,
@@ -89,9 +96,12 @@ export const cards: CardDefinition[] = [
 {
     id: "fire-storm",
     name: "Fire Storm",
-    damage: 4,
     cooldown: 2,
     effects: [
+        {
+            type: "damage",
+            amount: 4,
+        },
         {
             type: "burn",
             amount: 3,

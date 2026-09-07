@@ -2,33 +2,45 @@ export type CombatPhase = | "player-turn" | "enemy-turn" | "end-turn" | "victory
 
 export type CardEffect =
   | {
+      type: "damage";
+      amount: number;
+    } | {
       type: "burn";
       amount: number;
       duration: number
     } | {
         type: "block",
         amount: number
+    } | {
+        type: "gain-action";
+        amount: number;
+    } | {
+        type: "draw";
+        amount: number;
+    } | {
+        type: "heal";
+        amount: number;
     }
 
 export interface CardDefinition {
     id: string;
     name: string;
-    damage: number;
     cooldown: number;
-    effects?: CardEffect[];
+    effects: CardEffect[];
 }
 export interface CardState {
     cardId: string;
     cooldownRemaining: number;
 }
 export interface StatusEffect {
-    type: "burn";
+    type: "burn" | "weak";
     amount: number;
     duration: number;
 }
 export interface PlayerState {
     hp: number;
     maxHp: number;
+    baseActions: number;
     actions: number;
     statusEffects: StatusEffect[];
     block: number;
@@ -44,17 +56,29 @@ export type EnemyIntent = | {
 } | {
     type: "block";
     amount: number;
+} | {
+    type: "heal";
+    amount: number;
+} | {
+    type: "buff";
+    amount: number;
+} | {
+    type: "debuff";
+    amount: number;
+    duration: number;
 }
 export interface EnemyDefinition {
     id: string;
     name: string;
     maxHp: number;
-    intents: EnemyIntent[]
+    intents: EnemyIntent[];
+    reward: CombatReward;
 }
 export interface EnemyState {
   definitionId: string;
   hp: number;
   block: number;
+  strength: number;
   intentIndex: number;
   intent: EnemyIntent;
   statusEffects: StatusEffect[];
@@ -64,4 +88,20 @@ export interface CombatState {
   turn: number;
   player: PlayerState;
   enemy: EnemyState;
+}
+
+export interface CombatReward {
+  gold: number;
+  cardChoices: string[];
+}
+
+export interface RunState {
+  hp: number;
+  maxHp: number;
+  gold: number;
+  deck: CardState[];
+  baseActions: number;
+  relics: string[];
+  upgrades: string[];
+  pendingReward: CombatReward | null;
 }
