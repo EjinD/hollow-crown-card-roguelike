@@ -1,12 +1,13 @@
 import type {CardEffect,CombatState, CardDefinition, PlayerState } from "../types/game";
 import { cards } from "../data/cards";
 import { enemies } from "../data/enemies";
-import { drawCards, drawCardsToHand, starterDeck } from "../data/deck";
+import { drawCards, drawCardsWithRecycle, starterDeck, } from "../data/deck";
+import { MAX_HAND_SIZE } from "../consts/game";
 
 export function startCombat(): CombatState {
     const enemy = enemies[0];
     const initialDeck = starterDeck.map((card) => ({...card}));
-    const { drawnCards, remainingDeck} = drawCards(initialDeck, 3);
+    const { drawnCards, remainingDeck} = drawCards(initialDeck, MAX_HAND_SIZE);
 
     return {
         phase: "player-turn",
@@ -16,9 +17,6 @@ export function startCombat(): CombatState {
             hp: 10,
             maxHp: 10,
             actions: 1,
-            cards: starterDeck.map((card) => (
-                {...card}
-            )),
             statusEffects: [],
             block: 0,
             hand: drawnCards,
@@ -112,6 +110,36 @@ export function startCombat(): CombatState {
     }
 
     return updatedState;
+}
+export function processExiledCards(
+    player: PlayerState,
+): PlayerState {
+    const updatedExiledCards = player.exiledCards.map(
+        (cardState) => ({
+            ...cardState,
+            cooldownRemaining: Math.max(
+                0,
+                cardState.cooldownRemaining - 1,
+            ),
+        }),
+    );
+
+    const returningCards = updatedExiledCards.filter(
+        (cardState) => cardState.cooldownRemaining === 0,
+    );
+
+    const remainingExiledCards = updatedExiledCards.filter(
+        (cardState) => cardState.cooldownRemaining > 0,
+    );
+
+    return {
+        ...player,
+        hand: [
+            ...player.hand,
+            ...returningCards,
+        ],
+        exiledCards: remainingExiledCards,
+    };
 }
     function getCard(cardId: string):CardDefinition | undefined {
         return cards.find((card) => card.id === cardId)
@@ -363,14 +391,16 @@ export function processEndTurn(
   
     const cardsToDraw = Math.max(
         0,
-        3 - state.player.hand.length
+        MAX_HAND_SIZE - state.player.hand.length
     );
     const { 
         hand: updatedHand,
-        drawPile: updatedDrawPile
-    } = drawCardsToHand(
+        drawPile: updatedDrawPile,
+        discardPile: updatedDiscardPile
+    } = drawCardsWithRecycle(
         handAfterReturning,
         state.player.drawPile,
+        state.player.discardPile,
         cardsToDraw
     )
 
@@ -383,6 +413,7 @@ export function processEndTurn(
             block: 0,
             hand: updatedHand,
             drawPile: updatedDrawPile,
+            discardPile: updatedDiscardPile,
             exiledCards: remainingExiledCards
         },
         enemy: {

@@ -1,13 +1,14 @@
 import { cards } from "../data/cards";
 import { describe, expect, it } from "vitest";
-import type { CombatState } from "../types/game";
+import type { CombatState, CardState, PlayerState} from "../types/game";
 import {
   startCombat,
   playCard,
   executeEnemyIntent,
   processEndTurn,
   applyCardEffects,
-  moveCardAfterPlay
+  moveCardAfterPlay,
+  processExiledCards
 } from "./combat";
 import {
     starterDeck,
@@ -18,9 +19,12 @@ import {
     drawCard,
     drawCards,
     drawCardsToHand,
-    shuffleDeck
+    shuffleDeck,
+    recycleDiscardPile,
+    drawCardsWithRecycle,
+    isValidDeck,
 } from "../data/deck";
-
+import { MIN_DECK_SIZE, MAX_DECK_SIZE } from "../consts/game";
 function addCardToHand(
     state: CombatState,
     cardId: string,
@@ -456,13 +460,21 @@ it("should loop back to the first enemy intent", () => {
 it("should apply burn to the enemy", () => {
     const state = startCombat();
 
-    const nextState = playCard(state, "ignite");
+    const stateWithCard = addCardToHand(
+        state,
+        "ignite",
+    );
+
+    const nextState = playCard(
+        stateWithCard,
+        "ignite",
+    );
 
     expect(nextState.enemy.statusEffects).toEqual([
         {
             type: "burn",
             amount: 3,
-            duration: 2
+            duration: 2,
         },
     ]);
 });
@@ -791,7 +803,15 @@ it("should apply effects when lethal card is played", () => {
         },
     };
 
-    const nextState = playCard(weakEnemyState, "ignite");
+    const stateWithCard = addCardToHand(
+    weakEnemyState,
+    "ignite",
+);
+
+const nextState = playCard(
+    stateWithCard,
+    "ignite",
+);
 
     expect(nextState.enemy.hp).toBe(0);
     expect(nextState.enemy.statusEffects).toEqual([
@@ -828,7 +848,7 @@ it("should not reduce cooldown below zero", () => {
         phase: "enemy-turn" as const,
         player: {
             ...state.player,
-            cards: state.player.cards.map((card) =>
+            hand: state.player.hand.map((card) =>
                 card.cardId === "fireball"
                     ? { ...card, cooldownRemaining: 0 }
                     : card
@@ -838,7 +858,7 @@ it("should not reduce cooldown below zero", () => {
 
     const nextState = processEndTurn(cooldownState);
 
-    const fireball = nextState.player.cards.find(
+    const fireball = nextState.player.hand.find(
         (card) => card.cardId === "fireball",
     );
 
@@ -971,7 +991,15 @@ it("should preserve existing effects when applying a new card effect", () => {
 it("should apply card effects when playing a card", () => {
     const state = startCombat();
 
-    const nextState = playCard(state, "ignite");
+    const stateWithCard = addCardToHand(
+    state,
+    "ignite",
+);
+
+const nextState = playCard(
+    stateWithCard,
+    "ignite",
+);
 
     expect(nextState.enemy.statusEffects).toEqual([
         {
@@ -1103,7 +1131,18 @@ it("should deal damage and apply block from the same card", () => {
 it("should create a fresh copy of the starter deck", () => {
     const state = startCombat();
 
-    expect(state.player.cards).not.toBe(starterDeck);
+    const allPlayerCards = [
+        ...state.player.hand,
+        ...state.player.drawPile,
+    ];
+
+    for (const card of allPlayerCards) {
+        const originalCard = starterDeck.find(
+            (starterCard) => starterCard.cardId === card.cardId,
+        );
+
+        expect(card).not.toBe(originalCard);
+    }
 });
 describe("Deck", () => {
     it("should add a card to the deck", () => {
@@ -1146,33 +1185,31 @@ it("should not mutate the original deck", () => {
     ]);
 });
 it("should remove a card from the deck", () => {
-    const deck = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
+    const deck: CardState[] = [
         {
             cardId: "ignite",
             cooldownRemaining: 0,
         },
-        {
-            cardId: "flame-burst",
-            cooldownRemaining: 0,
-        },
+        ...Array.from(
+            { length: MIN_DECK_SIZE },
+            (_, index) => ({
+                cardId: `card-${index}`,
+                cooldownRemaining: 0,
+            }),
+        ),
     ];
 
-    const result = removeCardFromDeck(deck, "ignite");
+    const result = removeCardFromDeck(
+        deck,
+        "ignite",
+    );
 
-    expect(result).toEqual([
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "flame-burst",
-            cooldownRemaining: 0,
-        },
-    ]);
+    expect(result).toHaveLength(MIN_DECK_SIZE);
+
+    expect(result).not.toContainEqual({
+        cardId: "ignite",
+        cooldownRemaining: 0,
+    });
 });
 it("should not mutate the original deck when removing a card", () => {
     const deck = [
@@ -1357,50 +1394,20 @@ it("should draw all available cards when count exceeds deck size", () => {
 it("should initialize the draw pile with the starter deck", () => {
     const state = startCombat();
 
-    expect(state.player.drawPile).toEqual([
-        {
-            cardId: "flame-guard",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ember-guard",
-            cooldownRemaining: 0,
-        },
-    ]);
+    expect([
+        ...state.player.hand,
+        ...state.player.drawPile,
+    ]).toHaveLength(starterDeck.length);
 });
 it("should not share the starter deck reference with draw pile", () => {
     const state = startCombat();
 
     expect(state.player.drawPile).not.toBe(starterDeck);
 });
-it("should draw three cards into the starting hand", () => {
+it("should draw five cards into the starting hand", () => {
     const state = startCombat();
 
-    expect(state.player.hand).toEqual([
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "flame-burst",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ignite",
-            cooldownRemaining: 0,
-        },
-    ]);
-
-    expect(state.player.drawPile).toEqual([
-        {
-            cardId: "flame-guard",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ember-guard",
-            cooldownRemaining: 0,
-        },
-    ]);
+    expect(state.player.hand).toHaveLength(5);
 });
 it("should move a played normal card to discard pile", () => {
     const state = startCombat();
@@ -1588,12 +1595,13 @@ it("should draw cards at the start of a new player turn", () => {
         player: {
             ...state.player,
             hand: state.player.hand.slice(0, 1),
+            drawPile: state.player.hand.slice(1),
         },
     };
 
     const result = processEndTurn(stateWithSmallHand);
 
-    expect(result.player.hand).toHaveLength(3);
+    expect(result.player.hand).toHaveLength(5);
 });
 it("should remove drawn cards from the draw pile", () => {
     const state = startCombat();
@@ -1604,6 +1612,7 @@ it("should remove drawn cards from the draw pile", () => {
         player: {
             ...state.player,
             hand: state.player.hand.slice(0, 1),
+            drawPile: state.player.hand.slice(1),
         },
     };
 
@@ -1613,7 +1622,7 @@ it("should remove drawn cards from the draw pile", () => {
     const result = processEndTurn(stateWithSmallHand);
 
     expect(result.player.drawPile.length).toBe(
-        initialDrawPileSize - 2,
+        initialDrawPileSize - 4,
     );
 });
 it("should create a shuffled copy of the deck", () => {
@@ -1637,4 +1646,380 @@ it("should create a shuffled copy of the deck", () => {
     expect(result).toHaveLength(3);
     expect(result).toEqual(expect.arrayContaining(deck));
     expect(result).not.toBe(deck);
+});
+it("should recycle discard pile when draw pile is empty", () => {
+    const drawPile: CardState[] = [];
+
+    const discardPile: CardState[] = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "flame-burst",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const result = recycleDiscardPile(
+        drawPile,
+        discardPile,
+    );
+
+    expect(result.drawPile).toHaveLength(3);
+    expect(result.drawPile).toEqual(
+        expect.arrayContaining(discardPile),
+    );
+    expect(result.discardPile).toEqual([]);
+});
+it("should not recycle discard pile when draw pile is not empty", () => {
+    const drawPile: CardState[] = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const discardPile: CardState[] = [
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const result = recycleDiscardPile(
+        drawPile,
+        discardPile,
+    );
+
+    expect(result.drawPile).toEqual(drawPile);
+    expect(result.discardPile).toEqual(discardPile);
+});
+it("should recycle discard pile when drawing cards", () => {
+    const hand: CardState[] = [];
+
+    const drawPile: CardState[] = [];
+
+    const discardPile: CardState[] = [
+        {
+            cardId: "fireball",
+            cooldownRemaining: 0,
+        },
+        {
+            cardId: "ignite",
+            cooldownRemaining: 0,
+        },
+    ];
+
+    const result = drawCardsWithRecycle(
+        hand,
+        drawPile,
+        discardPile,
+        2,
+    );
+
+    expect(result.hand).toHaveLength(2);
+
+    expect(result.hand).toEqual(
+        expect.arrayContaining([
+            {
+                cardId: "fireball",
+                cooldownRemaining: 0,
+            },
+            {
+                cardId: "ignite",
+                cooldownRemaining: 0,
+            },
+        ]),
+    );
+
+    expect(result.drawPile).toEqual([]);
+    expect(result.discardPile).toEqual([]);
+});
+it("should stop drawing when draw pile and discard pile are empty", () => {
+    const result = drawCardsWithRecycle(
+        [],
+        [],
+        [],
+        3,
+    );
+
+    expect(result.hand).toEqual([]);
+    expect(result.drawPile).toEqual([]);
+    expect(result.discardPile).toEqual([]);
+});
+it("should draw one card when hand has four cards", () => {
+    const state = startCombat();
+
+    const stateWithFourCards = {
+        ...state,
+        phase: "end-turn" as const,
+        player: {
+            ...state.player,
+            hand: state.player.hand.slice(0, 4),
+            drawPile: [
+                {
+                    cardId: "flame-guard",
+                    cooldownRemaining: 0,
+                },
+            ],
+        },
+    };
+
+    const result = processEndTurn(stateWithFourCards);
+
+    expect(result.player.hand).toHaveLength(5);
+
+    expect(result.player.hand).toContainEqual({
+        cardId: "flame-guard",
+        cooldownRemaining: 0,
+    });
+
+    expect(result.player.drawPile).toEqual([]);
+});
+it("should draw from discard pile when draw pile is empty", () => {
+    const state = startCombat();
+
+    const stateWithFourCards = {
+        ...state,
+        phase: "end-turn" as const,
+        player: {
+            ...state.player,
+            hand: state.player.hand.slice(0, 4),
+            drawPile: [],
+            discardPile: [
+                {
+                    cardId: "flame-guard",
+                    cooldownRemaining: 0,
+                },
+            ],
+        },
+    };
+
+    const result = processEndTurn(stateWithFourCards);
+
+    expect(result.player.hand).toHaveLength(5);
+
+    expect(result.player.hand).toContainEqual({
+        cardId: "flame-guard",
+        cooldownRemaining: 0,
+    });
+
+    expect(result.player.discardPile).toEqual([]);
+});
+it("should continue drawing from discard pile when draw pile runs out", () => {
+    const state = startCombat();
+
+    const stateWithTwoCards = {
+        ...state,
+        phase: "end-turn" as const,
+        player: {
+            ...state.player,
+            hand: state.player.hand.slice(0, 2),
+            drawPile: [
+                {
+                    cardId: "flame-guard",
+                    cooldownRemaining: 0,
+                },
+            ],
+            discardPile: [
+                {
+                    cardId: "ember-guard",
+                    cooldownRemaining: 0,
+                },
+                {
+                    cardId: "fireball",
+                    cooldownRemaining: 0,
+                },
+            ],
+        },
+    };
+
+    const result = processEndTurn(stateWithTwoCards);
+
+    expect(result.player.hand).toHaveLength(5);
+
+    expect(result.player.hand).toContainEqual({
+        cardId: "flame-guard",
+        cooldownRemaining: 0,
+    });
+
+    expect(result.player.hand).toContainEqual({
+        cardId: "ember-guard",
+        cooldownRemaining: 0,
+    });
+
+    expect(result.player.hand).toContainEqual({
+        cardId: "fireball",
+        cooldownRemaining: 0,
+    });
+
+    expect(result.player.drawPile).toHaveLength(0);
+    expect(result.player.discardPile).toEqual([]);
+});
+it("should not add a card when deck reaches maximum size", () => {
+    const deck: CardState[] = Array.from(
+        { length: MAX_DECK_SIZE },
+        (_, index) => ({
+            cardId: `card-${index}`,
+            cooldownRemaining: 0,
+        }),
+    );
+
+    const result = addCardToDeck(
+        deck,
+        "fireball",
+    );
+
+    expect(result).toEqual(deck);
+});
+it("should add a card when deck is below maximum size", () => {
+    const deck: CardState[] = Array.from(
+        { length: MAX_DECK_SIZE - 1 },
+        (_, index) => ({
+            cardId: `card-${index}`,
+            cooldownRemaining: 0,
+        }),
+    );
+
+    const result = addCardToDeck(
+        deck,
+        "fireball",
+    );
+
+    expect(result).toHaveLength(MAX_DECK_SIZE);
+});
+it("should not remove a card when deck reaches minimum size", () => {
+    const deck: CardState[] = Array.from(
+        { length: MIN_DECK_SIZE },
+        (_, index) => ({
+            cardId: index === 0
+                ? "fireball"
+                : `card-${index}`,
+            cooldownRemaining: 0,
+        }),
+    );
+
+    const result = removeCardFromDeck(
+        deck,
+        "fireball",
+    );
+
+    expect(result).toEqual(deck);
+});
+it("should remove a card when deck is above minimum size", () => {
+    const deck: CardState[] = Array.from(
+        { length: MIN_DECK_SIZE + 1 },
+        (_, index) => ({
+            cardId: index === 0
+                ? "fireball"
+                : `card-${index}`,
+            cooldownRemaining: 0,
+        }),
+    );
+
+    const result = removeCardFromDeck(
+        deck,
+        "fireball",
+    );
+
+    expect(result).toHaveLength(MIN_DECK_SIZE);
+});
+it("should accept deck with minimum size", () => {
+    const deck: CardState[] = Array.from(
+        { length: MIN_DECK_SIZE },
+        (_, index) => ({
+            cardId: `card-${index}`,
+            cooldownRemaining: 0,
+        }),
+    );
+
+    expect(isValidDeck(deck)).toBe(true);
+});
+it("should accept deck with maximum size", () => {
+    const deck: CardState[] = Array.from(
+        { length: MAX_DECK_SIZE },
+        (_, index) => ({
+            cardId: `card-${index}`,
+            cooldownRemaining: 0,
+        }),
+    );
+
+    expect(isValidDeck(deck)).toBe(true);
+});
+it("should reject deck below minimum size", () => {
+    const deck: CardState[] = Array.from(
+        { length: MIN_DECK_SIZE - 1 },
+        (_, index) => ({
+            cardId: `card-${index}`,
+            cooldownRemaining: 0,
+        }),
+    );
+
+    expect(isValidDeck(deck)).toBe(false);
+});
+it("should reject deck above maximum size", () => {
+    const deck: CardState[] = Array.from(
+        { length: MAX_DECK_SIZE + 1 },
+        (_, index) => ({
+            cardId: `card-${index}`,
+            cooldownRemaining: 0,
+        }),
+    );
+
+    expect(isValidDeck(deck)).toBe(false);
+});
+it("should process exiled cards and return ready cards to hand", () => {
+    const state = startCombat();
+
+    const player: PlayerState = {
+        ...state.player,
+        hand: [],
+        exiledCards: [
+            {
+                cardId: "flame-burst",
+                cooldownRemaining: 2,
+            },
+        ],
+    };
+
+    const result = processExiledCards(player);
+
+    expect(result.exiledCards).toEqual([
+        {
+            cardId: "flame-burst",
+            cooldownRemaining: 1,
+        },
+    ]);
+
+    expect(result.hand).toEqual([]);
+});
+it("should return an exiled card to hand when cooldown reaches zero", () => {
+    const state = startCombat();
+
+    const player: PlayerState = {
+        ...state.player,
+        hand: [],
+        exiledCards: [
+            {
+                cardId: "flame-burst",
+                cooldownRemaining: 1,
+            },
+        ],
+    };
+
+    const result = processExiledCards(player);
+
+    expect(result.exiledCards).toEqual([]);
+
+    expect(result.hand).toEqual([
+        {
+            cardId: "flame-burst",
+            cooldownRemaining: 0,
+        },
+    ]);
 });

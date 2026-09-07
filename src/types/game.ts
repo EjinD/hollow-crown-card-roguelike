@@ -30,7 +30,6 @@ export interface PlayerState {
     hp: number;
     maxHp: number;
     actions: number;
-    cards: CardState[];
     statusEffects: StatusEffect[];
     block: number;
     drawPile: CardState[];
