@@ -36,6 +36,7 @@ export interface PlayerState {
     hand: CardState[];
     exiledCards: CardState[];
     discardPile: CardState[];
+    exhaustedCards: CardState[];
 }
 export type EnemyIntent = | {
     type: "attack";

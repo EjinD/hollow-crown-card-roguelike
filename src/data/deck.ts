@@ -1,7 +1,6 @@
 import { MAX_DECK_SIZE, MIN_DECK_SIZE } from "../consts/game";
 import type { CardState } from "../types/game";
 import { cards } from "./cards";
-
 export const starterDeck: CardState[] = [
     {
         cardId: "fireball",

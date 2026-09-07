@@ -8,7 +8,8 @@ import {
   processEndTurn,
   applyCardEffects,
   moveCardAfterPlay,
-  processExiledCards
+  processExiledCards,
+  startPlayerTurn
 } from "./combat";
 import {
     starterDeck,
@@ -2022,4 +2023,100 @@ it("should return an exiled card to hand when cooldown reaches zero", () => {
             cooldownRemaining: 0,
         },
     ]);
+});
+it("should return a cooldown card to hand after cooldown expires", () => {
+    const state = startCombat();
+
+    const afterPlay = playCard(
+        state,
+        "flame-burst",
+    );
+
+    expect(afterPlay.player.exiledCards).toContainEqual({
+        cardId: "flame-burst",
+        cooldownRemaining: 2,
+    });
+
+    const afterEnemyAttack = executeEnemyIntent(afterPlay);
+
+    const afterFirstEndTurn = processEndTurn(
+        afterEnemyAttack,
+    );
+
+    expect(
+        afterFirstEndTurn.player.exiledCards,
+    ).toContainEqual({
+        cardId: "flame-burst",
+        cooldownRemaining: 1,
+    });
+
+    const afterSecondEnemyAttack = executeEnemyIntent({
+        ...afterFirstEndTurn,
+        phase: "enemy-turn",
+    });
+
+    const afterSecondEndTurn = processEndTurn(
+        afterSecondEnemyAttack,
+    );
+
+    expect(
+        afterSecondEndTurn.player.hand,
+    ).toContainEqual({
+        cardId: "flame-burst",
+        cooldownRemaining: 0,
+    });
+});
+it("should prepare the player for a new turn", () => {
+    const state = startCombat();
+
+    const player: PlayerState = {
+        ...state.player,
+        hand: state.player.hand.slice(0, 2),
+        drawPile: state.player.hand.slice(2),
+        exiledCards: [],
+        actions: 0,
+        block: 5,
+    };
+
+    const result = startPlayerTurn(player);
+
+    expect(result.actions).toBe(1);
+    expect(result.block).toBe(0);
+    expect(result.hand).toHaveLength(5);
+});
+it("should not draw more cards when hand is full", () => {
+    const state = startCombat();
+
+    expect(state.player.hand).toHaveLength(5);
+
+    const afterEnemyAttack = executeEnemyIntent({
+        ...state,
+        phase: "enemy-turn",
+    });
+
+    const afterEndTurn = processEndTurn(afterEnemyAttack);
+
+    expect(afterEndTurn.player.hand.length).toBeLessThanOrEqual(5);
+});
+it("should return a cooldown card with priority when hand is full", () => {
+    const state = startCombat();
+
+    const afterPlay = playCard(state, "flame-burst");
+
+    const afterFirstEnemyAttack = executeEnemyIntent(afterPlay);
+    const afterFirstEndTurn = processEndTurn(afterFirstEnemyAttack);
+
+    const afterSecondEnemyAttack = executeEnemyIntent({
+        ...afterFirstEndTurn,
+        phase: "enemy-turn",
+    });
+
+    const afterSecondEndTurn = processEndTurn(afterSecondEnemyAttack);
+
+    expect(afterSecondEndTurn.player.hand).toContainEqual({
+        cardId: "flame-burst",
+        cooldownRemaining: 0,
+    });
+
+    expect(afterSecondEndTurn.player.hand.length).toBeLessThanOrEqual(5);
 });

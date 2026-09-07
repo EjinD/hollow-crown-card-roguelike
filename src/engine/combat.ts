@@ -4,6 +4,37 @@ import { enemies } from "../data/enemies";
 import { drawCards, drawCardsWithRecycle, starterDeck, } from "../data/deck";
 import { MAX_HAND_SIZE } from "../consts/game";
 
+export function startPlayerTurn(
+    player: PlayerState,
+): PlayerState {
+    const playerAfterExile = processExiledCards(player);
+
+    const cardsToDraw = Math.max(
+        0,
+        MAX_HAND_SIZE - playerAfterExile.hand.length,
+    );
+
+    const {
+        hand: updatedHand,
+        drawPile: updatedDrawPile,
+        discardPile: updatedDiscardPile,
+    } = drawCardsWithRecycle(
+        playerAfterExile.hand,
+        playerAfterExile.drawPile,
+        playerAfterExile.discardPile,
+        cardsToDraw,
+    );
+
+    return {
+        ...playerAfterExile,
+        actions: 1,
+        block: 0,
+        hand: updatedHand,
+        drawPile: updatedDrawPile,
+        discardPile: updatedDiscardPile,
+    };
+}
+
 export function startCombat(): CombatState {
     const enemy = enemies[0];
     const initialDeck = starterDeck.map((card) => ({...card}));
@@ -22,7 +53,8 @@ export function startCombat(): CombatState {
             hand: drawnCards,
             drawPile: remainingDeck,
             discardPile: [],
-            exiledCards: []
+            exiledCards: [],
+            exhaustedCards: [],
         },
 
         enemy: {
@@ -73,6 +105,7 @@ export function startCombat(): CombatState {
         }
     }
 
+    
 
     export function applyCardEffects(
     state: CombatState,
@@ -132,13 +165,28 @@ export function processExiledCards(
         (cardState) => cardState.cooldownRemaining > 0,
     );
 
+    const availableSlots = MAX_HAND_SIZE - player.hand.length;
+
+    const cardsToHand = returningCards.slice(
+        0,
+        Math.max(0, availableSlots),
+    );
+
+    const cardsToExhaust = returningCards.slice(
+        Math.max(0, availableSlots),
+    );
+
     return {
         ...player,
         hand: [
             ...player.hand,
-            ...returningCards,
+            ...cardsToHand,
         ],
         exiledCards: remainingExiledCards,
+        exhaustedCards: [
+            ...player.exhaustedCards,
+            ...cardsToExhaust,
+        ],
     };
 }
     function getCard(cardId: string):CardDefinition | undefined {
@@ -341,86 +389,72 @@ export function processEndTurn(
     }
 
     const burnDamage = state.enemy.statusEffects
-      .filter((effect) => effect.type === "burn")
-      .reduce((total, effect) => total + effect.amount, 0);
+        .filter((effect) => effect.type === "burn")
+        .reduce((total, effect) => total + effect.amount, 0);
 
     const newEnemyHp = Math.max(
         0,
         state.enemy.hp - burnDamage,
     );
 
-    if(newEnemyHp === 0) {
+    if (newEnemyHp === 0) {
         return {
             ...state,
             enemy: {
                 ...state.enemy,
-                hp: 0
+                hp: 0,
             },
-            phase: "victory"
-        }
+            phase: "victory",
+        };
     }
 
-    const updatedEnemyStatusEffects = state.enemy.statusEffects
-    .map((effect) => ({
-        ...effect,
-        duration: effect.duration - 1,
-    }))
-    .filter((effect) => effect.duration > 0)
+    const updatedEnemyStatusEffects =
+        state.enemy.statusEffects
+            .map((effect) => ({
+                ...effect,
+                duration: effect.duration - 1,
+            }))
+            .filter((effect) => effect.duration > 0);
 
-    const updatedExiledCards = state.player.exiledCards.map(
-        (cardState) => ({
-            ...cardState,
-            cooldownRemaining: Math.max(
-                0,
-                cardState.cooldownRemaining - 1,
-            ),
-        }),
+    const playerAfterExile = processExiledCards(
+        state.player,
     );
-    
 
-    const returningCards = updatedExiledCards.filter(
-        (cardState) => cardState.cooldownRemaining === 0
-    );
-    const remainingExiledCards = updatedExiledCards.filter(
-        (cardState) => cardState.cooldownRemaining > 0
-    );
-    const handAfterReturning = [
-        ...state.player.hand,
-        ...returningCards
-    ]
-  
     const cardsToDraw = Math.max(
         0,
-        MAX_HAND_SIZE - state.player.hand.length
+        MAX_HAND_SIZE - playerAfterExile.hand.length,
     );
-    const { 
+    console.log("BEFORE EXILE", state.player.exiledCards);
+    console.log("AFTER EXILE", playerAfterExile.exiledCards);
+    console.log("HAND AFTER EXILE", playerAfterExile.hand);
+
+    const {
         hand: updatedHand,
         drawPile: updatedDrawPile,
-        discardPile: updatedDiscardPile
+        discardPile: updatedDiscardPile,
     } = drawCardsWithRecycle(
-        handAfterReturning,
-        state.player.drawPile,
-        state.player.discardPile,
-        cardsToDraw
-    )
+        playerAfterExile.hand,
+        playerAfterExile.drawPile,
+        playerAfterExile.discardPile,
+        cardsToDraw,
+    );
 
     return {
         ...state,
         turn: state.turn + 1,
         player: {
-            ...state.player,
+            ...playerAfterExile,
             actions: 1,
             block: 0,
             hand: updatedHand,
             drawPile: updatedDrawPile,
             discardPile: updatedDiscardPile,
-            exiledCards: remainingExiledCards
         },
         enemy: {
             ...state.enemy,
             hp: newEnemyHp,
             block: 0,
-            statusEffects: updatedEnemyStatusEffects
+            statusEffects: updatedEnemyStatusEffects,
         },
         phase: "player-turn",
     };
