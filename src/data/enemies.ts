@@ -43,6 +43,7 @@ export const enemies: EnemyDefinition[] = [
     id: "war-goblin",
     name: "War Goblin",
     maxHp: 18,
+    lastFight: true,
     intents: [
       { type: "buff", amount: 1 },
       { type: "attack", damage: 3 },

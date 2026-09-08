@@ -73,6 +73,7 @@ export interface EnemyDefinition {
     maxHp: number;
     intents: EnemyIntent[];
     reward: CombatReward;
+    lastFight?: boolean;
 }
 export interface EnemyState {
   definitionId: string;
@@ -105,8 +106,15 @@ export interface RunState {
   upgrades: string[];
   pendingReward: CombatReward | null;
   map: MapState;
+  status: RunStatus;
+  result: RunResult | null
 }
-export type MapNodeType = | "battle" | "elite" | "event" | "boss" | "shop" 
+export type MapNodeType =
+    | "battle"
+    | "elite"
+    | "event"
+    | "shop"
+    | "boss";
 export interface MapNode {
     id: string;
     type: MapNodeType;
@@ -117,3 +125,5 @@ export interface MapState {
     nodes: MapNode[];
     currentNodeId: string;
 }
+export type RunStatus = "active" | "completed";
+export type RunResult = "victory" | "defeat";
