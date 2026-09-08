@@ -121,6 +121,7 @@ export interface MapNode {
     enemyId?: string;
     eventId?: string;
     nextNodeIds: string[];
+    completed: boolean;
 }
 export interface MapState {
     nodes: MapNode[];

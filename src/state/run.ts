@@ -4,7 +4,6 @@ import { enemies } from "../data/enemies";
 import { startCombat } from "../engine/combat";
 import type { CombatState, RunState, MapNode } from "../types/game";
 import { generateMap } from "../data/map";
-import { events } from "../data/events";
 
 
 export function startRun(): RunState {
@@ -44,9 +43,6 @@ export function claimCardReward(
     run: RunState,
     cardId: string,
 ): RunState {
-    if (run.status === "completed") {
-        return run;
-    }
 
     if (!run.pendingReward) {
         return run;
@@ -84,7 +80,7 @@ export function skipReward(
     };
 }
 
-export function startNextCombat(
+export function startCurrentCombat(
     run: RunState,
 ): CombatState {
     const currentNode = getCurrentMapNode(run);
@@ -110,16 +106,16 @@ export function completeCombat(
     combat: CombatState,
 ): RunState {
     if (combat.phase === "defeat") {
-    return {
-        ...run,
-        hp: combat.player.hp,
-        maxHp: combat.player.maxHp,
-        baseActions: combat.player.baseActions,
-        status: "completed",
-        result: "defeat",
-        pendingReward: null,
-    };
-}
+        return {
+            ...run,
+            hp: combat.player.hp,
+            maxHp: combat.player.maxHp,
+            baseActions: combat.player.baseActions,
+            status: "completed",
+            result: "defeat",
+            pendingReward: null,
+        };
+    }
 
     const enemy = enemies.find(
         (enemy) => enemy.id === combat.enemy.definitionId,
@@ -129,17 +125,22 @@ export function completeCombat(
         return run;
     }
 
-
-    return {
-    ...run,
-    hp: combat.player.hp,
-    maxHp: combat.player.maxHp,
-    baseActions: combat.player.baseActions,
-    gold: run.gold + enemy.reward.gold,
-    pendingReward: enemy.reward,
-    status: enemy.lastFight ? "completed" : "active",
-    result: enemy.lastFight ? "victory" : null,
+    const updatedRun: RunState = {
+        ...run,
+        hp: combat.player.hp,
+        maxHp: combat.player.maxHp,
+        baseActions: combat.player.baseActions,
+        gold: run.gold + enemy.reward.gold,
+        pendingReward: enemy.reward,
+        status: enemy.lastFight
+            ? "completed"
+            : "active",
+        result: enemy.lastFight
+            ? "victory"
+            : null,
     };
+
+    return completeCurrentMapNode(updatedRun);
 }
 
 export function replaceCardInDeck(
@@ -147,10 +148,6 @@ export function replaceCardInDeck(
     oldCardId: string,
     newCardId: string,
 ): RunState {
-    if (run.status === "completed") {
-        return run;
-    }
-
     if (!run.pendingReward) {
         return run;
     }
@@ -203,6 +200,16 @@ export function selectNextNode(
     nodeId: string,
 ): RunState {
     if (run.pendingReward !== null) {
+        return run;
+    }
+
+    const currentNode = getCurrentMapNode(run);
+
+    if (!currentNode) {
+        return run;
+    }
+
+    if (!currentNode.completed) {
         return run;
     }
 
@@ -262,24 +269,28 @@ export function triggerCurrentEvent(
     if (
         !currentNode ||
         currentNode.type !== "event" ||
-        !currentNode.eventId
+        !currentNode.eventId ||
+        currentNode.completed
     ) {
         return run;
     }
 
-    const event = events.find(
-        (event) => event.id === currentNode.eventId,
-    );
+    const updatedRun = removeRandomCardFromDeck(run);
 
-    if (!event) {
-        return run;
-    }
-
-    if (event.id === "remove-random-card") {
-        return removeRandomCardFromDeck(run);
-    }
-
-    return run;
+    return {
+        ...updatedRun,
+        map: {
+            ...updatedRun.map,
+            nodes: updatedRun.map.nodes.map((node) =>
+                node.id === currentNode.id
+                    ? {
+                        ...node,
+                        completed: true,
+                    }
+                    : node,
+            ),
+        },
+    };
 }
 
 export function removeRandomCardFromDeck(
@@ -299,4 +310,39 @@ export function removeRandomCardFromDeck(
             (_, index) => index !== randomIndex,
         ),
     };
+}
+
+export function completeCurrentMapNode(
+    run: RunState,
+): RunState {
+    return {
+        ...run,
+        map: {
+            ...run.map,
+            nodes: run.map.nodes.map((node) =>
+                node.id === run.map.currentNodeId
+                    ? {
+                        ...node,
+                        completed: true,
+                    }
+                    : node,
+            ),
+        },
+    };
+}
+
+export function enterCurrentShop(
+    run: RunState,
+): RunState {
+    const currentNode = getCurrentMapNode(run);
+
+    if (
+        !currentNode ||
+        currentNode.type !== "shop" ||
+        currentNode.completed
+    ) {
+        return run;
+    }
+
+    return completeCurrentMapNode(run);
 }
