@@ -1,11 +1,15 @@
-import { BASE_ACTIONS, MAX_DECK_SIZE} from "../consts/game";
+import { BASE_ACTIONS, MAX_DECK_SIZE, MIN_DECK_SIZE} from "../consts/game";
 import { cloneDeck, starterDeck, addCardToDeck } from "../data/deck";
 import { enemies } from "../data/enemies";
 import { startCombat } from "../engine/combat";
 import type { CombatState, RunState, MapNode } from "../types/game";
-import { initialMap } from "../data/map";
+import { generateMap } from "../data/map";
+import { events } from "../data/events";
+
 
 export function startRun(): RunState {
+    const map = generateMap();
+
     return {
         hp: 10,
         maxHp: 10,
@@ -15,11 +19,7 @@ export function startRun(): RunState {
         relics: [],
         upgrades: [],
         pendingReward: null,
-        map: {currentNodeId: initialMap.currentNodeId,
-            nodes: initialMap.nodes.map((node) => ({
-            ...node,
-            nextNodeIds: [...node.nextNodeIds],
-    })),},
+        map,
         status: "active",
         result: null,
     };
@@ -85,18 +85,14 @@ export function skipReward(
 }
 
 export function startNextCombat(
-    run: RunState
+    run: RunState,
 ): CombatState {
     const currentNode = getCurrentMapNode(run);
 
     if (
         !currentNode ||
         !currentNode.enemyId ||
-        (
-            currentNode.type !== "battle" &&
-            currentNode.type !== "elite" &&
-            currentNode.type !== "boss"
-        )
+        !isCombatNode(currentNode)
     ) {
         throw new Error(
             "Current map node cannot start a combat.",
@@ -246,4 +242,61 @@ export function getAvailableNextNodes(
             (node): node is MapNode =>
                 node !== undefined,
         );
+}
+
+export function isCombatNode(
+    node: MapNode,
+): boolean {
+    return (
+        node.type === "battle" ||
+        node.type === "elite" ||
+        node.type === "boss"
+    );
+}
+
+export function triggerCurrentEvent(
+    run: RunState,
+): RunState {
+    const currentNode = getCurrentMapNode(run);
+
+    if (
+        !currentNode ||
+        currentNode.type !== "event" ||
+        !currentNode.eventId
+    ) {
+        return run;
+    }
+
+    const event = events.find(
+        (event) => event.id === currentNode.eventId,
+    );
+
+    if (!event) {
+        return run;
+    }
+
+    if (event.id === "remove-random-card") {
+        return removeRandomCardFromDeck(run);
+    }
+
+    return run;
+}
+
+export function removeRandomCardFromDeck(
+    run: RunState,
+): RunState {
+    if (run.deck.length <= MIN_DECK_SIZE) {
+        return run;
+    }
+
+    const randomIndex = Math.floor(
+        Math.random() * run.deck.length,
+    );
+
+    return {
+        ...run,
+        deck: run.deck.filter(
+            (_, index) => index !== randomIndex,
+        ),
+    };
 }

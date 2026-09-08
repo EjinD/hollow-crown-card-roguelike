@@ -119,6 +119,7 @@ export interface MapNode {
     id: string;
     type: MapNodeType;
     enemyId?: string;
+    eventId?: string;
     nextNodeIds: string[];
 }
 export interface MapState {
@@ -127,3 +128,4 @@ export interface MapState {
 }
 export type RunStatus = "active" | "completed";
 export type RunResult = "victory" | "defeat";
+export type EventId = "remove-random-card";

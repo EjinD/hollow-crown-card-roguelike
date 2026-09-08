@@ -35,7 +35,7 @@ export const enemies: EnemyDefinition[] = [
       },
     ],
     reward: {
-      gold: 20,
+      gold: 15,
       cardChoices: ["flare", "kindle", "renewal-flame"]
     }
   },
@@ -43,15 +43,46 @@ export const enemies: EnemyDefinition[] = [
     id: "war-goblin",
     name: "War Goblin",
     maxHp: 18,
-    lastFight: true,
     intents: [
       { type: "buff", amount: 1 },
       { type: "attack", damage: 3 },
       { type: "debuff", amount: 25, duration: 1 },
     ],
     reward: {
-      gold: 25,
+      gold: 20,
       cardChoices: ["flare", "kindle", "renewal-flame"]
     }
   },
+  {
+    id: "goblin-king",
+    name: "Goblin King",
+    maxHp: 30,
+    lastFight: true,
+    intents: [
+        {
+            type: "attack",
+            damage: 4,
+        },
+        {
+            type: "block",
+            amount: 5,
+        },
+        {
+            type: "buff",
+            amount: 2,
+        },
+        {
+            type: "attack",
+            damage: 6,
+        },
+    ],
+    reward: {
+        gold: 50,
+        cardChoices: [
+            "flare",
+            "kindle",
+            "renewal-flame",
+        ],
+    },
+},
 ];
