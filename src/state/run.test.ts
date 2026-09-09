@@ -8,22 +8,16 @@ import {
     triggerCurrentEvent,
     enterCurrentShop,
     completeCurrentMapNode,
-    completeCombat,
-    claimCardReward,
-    replaceCardInDeck,
 } from "./run";
 
 import {
-    generateMap,
     isValidMap,
     canReachBoss,
 } from "../data/map";
 
-import { startCombat } from "../engine/combat";
 
 import {
     MIN_DECK_SIZE,
-    MAX_DECK_SIZE,
 } from "../consts/game";
 
 describe("Run", () => {

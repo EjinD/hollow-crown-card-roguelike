@@ -66,10 +66,6 @@ export function claimCardReward(
 export function skipReward(
     run: RunState,
 ): RunState {
-    if (run.status === "completed" && run.pendingReward === null) {
-        return run;
-    }
-
     if (!run.pendingReward) {
         return run;
     }

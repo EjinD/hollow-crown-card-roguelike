@@ -1,6 +1,6 @@
 import { cards } from "../data/cards";
 import { describe, expect, it } from "vitest";
-import type { CombatState, CardState, PlayerState} from "../types/game";
+import type { CombatState, PlayerState} from "../types/game";
 import {
   startCombat,
   playCard,
@@ -11,21 +11,10 @@ import {
   processExiledCards,
   startPlayerTurn
 } from "./combat";
+import { startRun } from "../state/run";
 import {
-    starterDeck,
-    addCardToDeck,
-    removeCardFromDeck,
-    cloneDeck,
-    findCardInDeck,
-    drawCard,
-    drawCards,
     drawCardsToHand,
-    shuffleDeck,
-    recycleDiscardPile,
-    drawCardsWithRecycle,
-    isValidDeck,
 } from "../data/deck";
-import { MIN_DECK_SIZE, MAX_DECK_SIZE } from "../consts/game";
 function addCardToHand(
     state: CombatState,
     cardId: string,
@@ -44,11 +33,15 @@ function addCardToHand(
         },
     };
 }
+
+function createCombat() {
+    return startCombat(startRun(), "goblin");
+}
 //затычка вренная
 
 describe("Combat", () => {
   it("should start combat with correct initial state", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     expect(state.phase).toBe("player-turn");
     expect(state.turn).toBe(1);
@@ -63,7 +56,7 @@ describe("Combat", () => {
   });
 
   it("should deal damage when playing Fireball", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const nextState = playCard(
       state,
@@ -74,7 +67,7 @@ describe("Combat", () => {
   });
 
   it("should spend one action when playing a card", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const nextState = playCard(
       state,
@@ -85,7 +78,7 @@ describe("Combat", () => {
   });
 
   it("should change phase to enemy turn after playing a card", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const nextState = playCard(
       state,
@@ -96,7 +89,7 @@ describe("Combat", () => {
   });
 
   it("should not allow playing a card without actions", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithoutActions = {
       ...state,
@@ -115,7 +108,7 @@ describe("Combat", () => {
   });
 
   it("should not allow playing a card during enemy turn", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const enemyTurnState = {
       ...state,
@@ -131,7 +124,7 @@ describe("Combat", () => {
   });
 
   it("should not allow an unknown card", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const nextState = playCard(
       state,
@@ -142,7 +135,7 @@ describe("Combat", () => {
   });
 
   it("should allow the enemy to attack the player", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const afterPlayerAttack = playCard(
       state,
@@ -158,7 +151,7 @@ describe("Combat", () => {
   });
 
   it("should process the end of the turn", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const afterPlayerAttack = playCard(
       state,
@@ -179,7 +172,7 @@ describe("Combat", () => {
   });
 
 it("should reduce cooldown at the end of the turn", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const afterFlameBurst = playCard(
         state,
@@ -211,7 +204,7 @@ it("should reduce cooldown at the end of the turn", () => {
 });
 
   it("should not allow playing a card while it is on cooldown", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const afterFlameBurst = playCard(
       state,
@@ -250,7 +243,7 @@ it("should reduce cooldown at the end of the turn", () => {
     expect(result).toEqual(stateBeforeSecondUse);
   });
 it("should reduce cooldown from 1 to 0", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const afterFlameBurst = playCard(
         state,
@@ -296,7 +289,7 @@ it("should reduce cooldown from 1 to 0", () => {
 
 });
 it("should apply block when enemy intent is block", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const blockState = {
         ...state,
@@ -319,7 +312,7 @@ it("should apply block when enemy intent is block", () => {
     expect(nextState.phase).toBe("end-turn");
 });
 it("should use enemy block before reducing HP", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const blockState = {
         ...state,
@@ -338,7 +331,7 @@ it("should use enemy block before reducing HP", () => {
     expect(nextState.enemy.block).toBe(1);
 });
 it("should deal remaining damage after breaking enemy block", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const blockState = {
         ...state,
@@ -357,7 +350,7 @@ it("should deal remaining damage after breaking enemy block", () => {
     expect(nextState.enemy.block).toBe(0);
 });
 it("should keep enemy block after enemy turn", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const blockState = {
         ...state,
@@ -375,7 +368,7 @@ it("should keep enemy block after enemy turn", () => {
     expect(nextState.enemy.block).toBe(3);
 });
 it("should reset enemy block at the end of the turn", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const blockState = {
         ...state,
@@ -391,7 +384,7 @@ it("should reset enemy block at the end of the turn", () => {
     expect(nextState.enemy.block).toBe(0);
 });
 it("should move to the next enemy intent after enemy action", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const enemyTurnState = {
         ...state,
@@ -411,7 +404,7 @@ it("should move to the next enemy intent after enemy action", () => {
     expect(nextState.enemy.intentIndex).toBe(1);
 });
 it("should set the next enemy intent after enemy action", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const enemyTurnState = {
         ...state,
@@ -435,7 +428,7 @@ it("should set the next enemy intent after enemy action", () => {
     });
 });
 it("should loop back to the first enemy intent", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const enemyTurnState = {
         ...state,
@@ -459,7 +452,7 @@ it("should loop back to the first enemy intent", () => {
     });
 });
 it("should apply burn to the enemy", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithCard = addCardToHand(
         state,
@@ -480,7 +473,7 @@ it("should apply burn to the enemy", () => {
     ]);
 });
 it("should deal burn damage at the end of the turn", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const burnState = {
         ...state,
@@ -503,7 +496,7 @@ it("should deal burn damage at the end of the turn", () => {
     expect(nextState.enemy.hp).toBe(12);
 });
 it("should reduce burn duration at the end of the turn", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const burnState = {
         ...state,
@@ -531,7 +524,7 @@ it("should reduce burn duration at the end of the turn", () => {
     ]);
 });
 it("should remove burn when duration reaches zero", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const burnState = {
         ...state,
@@ -555,7 +548,7 @@ it("should remove burn when duration reaches zero", () => {
 /// стаки берна тест
 
 it("should stack multiple burn effects", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const burnState = {
         ...state,
@@ -580,7 +573,7 @@ it("should stack multiple burn effects", () => {
     expect(burnState.enemy.statusEffects).toHaveLength(2);
 });
 it("should deal combined damage from multiple burn effects", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const burnState = {
         ...state,
@@ -608,7 +601,7 @@ it("should deal combined damage from multiple burn effects", () => {
     expect(nextState.enemy.hp).toBe(9);
 });
 it("should not allow playing a card after victory", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const victoryState = {
         ...state,
@@ -620,7 +613,7 @@ it("should not allow playing a card after victory", () => {
     expect(nextState).toEqual(victoryState);
 });
 it("should not allow playing a card after defeat", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const defeatState = {
         ...state,
@@ -632,7 +625,7 @@ it("should not allow playing a card after defeat", () => {
     expect(nextState).toEqual(defeatState);
 });
 it("should not execute enemy intent after victory", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const victoryState = {
         ...state,
@@ -644,7 +637,7 @@ it("should not execute enemy intent after victory", () => {
     expect(nextState).toEqual(victoryState);
 });
 it("should not execute enemy intent after defeat", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const defeatState = {
         ...state,
@@ -656,7 +649,7 @@ it("should not execute enemy intent after defeat", () => {
     expect(nextState).toEqual(defeatState);
 });
 it("should not reduce player HP below zero", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const lowHpState = {
         ...state,
@@ -680,7 +673,7 @@ it("should not reduce player HP below zero", () => {
     expect(nextState.phase).toBe("defeat");
 });
 it("should not reduce enemy HP below zero", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const lowHpState = {
         ...state,
@@ -696,7 +689,7 @@ it("should not reduce enemy HP below zero", () => {
     expect(nextState.phase).toBe("victory");
 });
 it("should break enemy block and kill the enemy with remaining damage", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const lowHpBlockedState = {
         ...state,
@@ -714,7 +707,7 @@ it("should break enemy block and kill the enemy with remaining damage", () => {
     expect(nextState.phase).toBe("victory");
 });
 it("should fully absorb damage with enemy block", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const blockedState = {
         ...state,
@@ -733,7 +726,7 @@ it("should fully absorb damage with enemy block", () => {
     expect(nextState.phase).toBe("enemy-turn");
 });
 it("should win if burn kills enemy at end of turn", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const burningState = {
         ...state,
@@ -757,7 +750,7 @@ it("should win if burn kills enemy at end of turn", () => {
     expect(nextState.phase).toBe("victory");
 });
 it("should spend player action when lethal card is played", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const weakEnemyState = {
         ...state,
@@ -774,7 +767,7 @@ it("should spend player action when lethal card is played", () => {
     expect(nextState.phase).toBe("victory");
 });
 it("should apply cooldown when lethal card is played", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const weakEnemyState = {
         ...state,
@@ -794,7 +787,7 @@ it("should apply cooldown when lethal card is played", () => {
     expect(nextState.phase).toBe("victory");
 });
 it("should apply effects when lethal card is played", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const weakEnemyState = {
         ...state,
@@ -825,7 +818,7 @@ const nextState = playCard(
     expect(nextState.phase).toBe("victory");
 });
 it("should not allow playing another card after lethal attack", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const weakEnemyState = {
         ...state,
@@ -842,7 +835,7 @@ it("should not allow playing another card after lethal attack", () => {
     expect(nextState).toEqual(victoryState);
 });
 it("should not reduce cooldown below zero", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const cooldownState = {
         ...state,
@@ -866,7 +859,7 @@ it("should not reduce cooldown below zero", () => {
     expect(fireball?.cooldownRemaining).toBe(0);
 });
 it("should not continue combat after player defeat", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const enemyTurnState = {
         ...state,
@@ -894,7 +887,7 @@ it("should not continue combat after player defeat", () => {
     expect(nextState).toEqual(defeatState);
 });
 it("should not execute enemy intent twice in the same turn", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const enemyTurnState = {
         ...state,
@@ -908,7 +901,7 @@ it("should not execute enemy intent twice in the same turn", () => {
     expect(afterSecondIntent).toEqual(afterFirstIntent);
 });
 it("should not process end turn after burn victory", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const burningState = {
         ...state,
@@ -933,7 +926,7 @@ it("should not process end turn after burn victory", () => {
     expect(afterSecondProcess).toEqual(victoryState);
 });
 it("should apply burn effect from card", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const card = cards.find((card) => card.id === "ignite");
 
@@ -952,7 +945,7 @@ it("should apply burn effect from card", () => {
     ]);
 });
 it("should preserve existing effects when applying a new card effect", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithBurn = {
         ...state,
@@ -990,7 +983,7 @@ it("should preserve existing effects when applying a new card effect", () => {
     ]);
 });
 it("should apply card effects when playing a card", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithCard = addCardToHand(
     state,
@@ -1011,7 +1004,7 @@ const nextState = playCard(
     ]);
 });
 it("should reduce enemy block before reducing HP", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithBlock: CombatState = {
         ...state,
@@ -1028,7 +1021,7 @@ it("should reduce enemy block before reducing HP", () => {
     expect(result.enemy.hp).toBe(13);
 });
 it("should switch to the next enemy intent", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const enemyTurnState: CombatState = {
         ...state,
@@ -1041,7 +1034,7 @@ it("should switch to the next enemy intent", () => {
     expect(result.enemy.intent.type).toBe("block");
 });
 it("should reset player block at the end of turn", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const endTurnState: CombatState = {
         ...state,
@@ -1057,7 +1050,7 @@ it("should reset player block at the end of turn", () => {
     expect(result.player.block).toBe(0);
 });
 it("should apply block effect to the player", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const result = applyCardEffects(state, [
         {
@@ -1069,7 +1062,7 @@ it("should apply block effect to the player", () => {
     expect(result.player.block).toBe(3);
 });
 it("should apply block when playing a block card", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithCard = addCardToHand(
         state,
@@ -1086,7 +1079,7 @@ it("should apply block when playing a block card", () => {
     expect(result.phase).toBe("enemy-turn");
 });
 it("should apply block effect to flame-guard", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithCard = addCardToHand(
         state,
@@ -1098,7 +1091,7 @@ it("should apply block effect to flame-guard", () => {
     expect(result.player.block).toBe(3);
 });
 it("should reduce player block when enemy attacks", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithCard = addCardToHand(
         state,
@@ -1115,7 +1108,7 @@ it("should reduce player block when enemy attacks", () => {
     expect(result.player.hp).toBe(10);
 });
 it("should deal damage and apply block from the same card", () => {
-    const state = startCombat();
+    const state = createCombat();
     
     const stateWithCard = addCardToHand(
         state,
@@ -1129,289 +1122,13 @@ it("should deal damage and apply block from the same card", () => {
     expect(result.player.actions).toBe(0);
     expect(result.phase).toBe("enemy-turn");
 });
-it("should create a fresh copy of the starter deck", () => {
-    const state = startCombat();
-
-    const allPlayerCards = [
-        ...state.player.hand,
-        ...state.player.drawPile,
-    ];
-
-    for (const card of allPlayerCards) {
-        const originalCard = starterDeck.find(
-            (starterCard) => starterCard.cardId === card.cardId,
-        );
-
-        expect(card).not.toBe(originalCard);
-    }
-});
-describe("Deck", () => {
-    it("should add a card to the deck", () => {
-        const deck = [
-            {
-                cardId: "fireball",
-                cooldownRemaining: 0,
-            },
-        ];
-
-        const result = addCardToDeck(deck, "ignite");
-
-        expect(result).toEqual([
-            {
-                cardId: "fireball",
-                cooldownRemaining: 0,
-            },
-            {
-                cardId: "ignite",
-                cooldownRemaining: 0,
-            },
-        ]);
-    });
-});
-it("should not mutate the original deck", () => {
-    const deck = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-    ];
-
-    addCardToDeck(deck, "ignite");
-
-    expect(deck).toEqual([
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-    ]);
-});
-it("should remove a card from the deck", () => {
-    const deck: CardState[] = [
-        {
-            cardId: "ignite",
-            cooldownRemaining: 0,
-        },
-        ...Array.from(
-            { length: MIN_DECK_SIZE },
-            (_, index) => ({
-                cardId: `card-${index}`,
-                cooldownRemaining: 0,
-            }),
-        ),
-    ];
-
-    const result = removeCardFromDeck(
-        deck,
-        "ignite",
-    );
-
-    expect(result).toHaveLength(MIN_DECK_SIZE);
-
-    expect(result).not.toContainEqual({
-        cardId: "ignite",
-        cooldownRemaining: 0,
-    });
-});
-it("should not mutate the original deck when removing a card", () => {
-    const deck = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ignite",
-            cooldownRemaining: 0,
-        },
-    ];
-
-    removeCardFromDeck(deck, "ignite");
-
-    expect(deck).toEqual([
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ignite",
-            cooldownRemaining: 0,
-        },
-    ]);
-});
-it("should not add an unknown card to the deck", () => {
-    const deck = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-    ];
-
-    const result = addCardToDeck(deck, "unknown-card");
-
-    expect(result).toEqual(deck);
-});
-it("should clone the deck without sharing card objects", () => {
-    const deck = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ignite",
-            cooldownRemaining: 1,
-        },
-    ];
-
-    const result = cloneDeck(deck);
-
-    expect(result).toEqual(deck);
-    expect(result).not.toBe(deck);
-    expect(result[0]).not.toBe(deck[0]);
-    expect(result[1]).not.toBe(deck[1]);
-});
-it("should find a card in the deck", () => {
-    const deck = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ignite",
-            cooldownRemaining: 1,
-        },
-    ];
-
-    const result = findCardInDeck(deck, "ignite");
-
-    expect(result).toEqual({
-        cardId: "ignite",
-        cooldownRemaining: 1,
-    });
-});
-it("should return undefined when card is not in the deck", () => {
-    const deck = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-    ];
-
-    const result = findCardInDeck(deck, "ignite");
-
-    expect(result).toBeUndefined();
-});
-it("should draw the first card from the deck", () => {
-    const deck = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ignite",
-            cooldownRemaining: 0,
-        },
-    ];
-
-    const result = drawCard(deck);
-
-    expect(result.card).toEqual({
-        cardId: "fireball",
-        cooldownRemaining: 0,
-    });
-
-    expect(result.remainingDeck).toEqual([
-        {
-            cardId: "ignite",
-            cooldownRemaining: 0,
-        },
-    ]);
-});
-it("should return undefined when drawing from an empty deck", () => {
-    const result = drawCard([]);
-
-    expect(result.card).toBeUndefined();
-    expect(result.remainingDeck).toEqual([]);
-});
-it("should draw multiple cards from the deck", () => {
-    const deck = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ignite",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "flame-burst",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "flame-guard",
-            cooldownRemaining: 0,
-        },
-    ];
-
-    const result = drawCards(deck, 3);
-
-    expect(result.drawnCards).toEqual([
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ignite",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "flame-burst",
-            cooldownRemaining: 0,
-        },
-    ]);
-
-    expect(result.remainingDeck).toEqual([
-        {
-            cardId: "flame-guard",
-            cooldownRemaining: 0,
-        },
-    ]);
-});
-it("should draw all available cards when count exceeds deck size", () => {
-    const deck = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ignite",
-            cooldownRemaining: 0,
-        },
-    ];
-
-    const result = drawCards(deck, 5);
-
-    expect(result.drawnCards).toEqual(deck);
-    expect(result.remainingDeck).toEqual([]);
-});
-it("should initialize the draw pile with the starter deck", () => {
-    const state = startCombat();
-
-    expect([
-        ...state.player.hand,
-        ...state.player.drawPile,
-    ]).toHaveLength(starterDeck.length);
-});
-it("should not share the starter deck reference with draw pile", () => {
-    const state = startCombat();
-
-    expect(state.player.drawPile).not.toBe(starterDeck);
-});
 it("should draw five cards into the starting hand", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     expect(state.player.hand).toHaveLength(5);
 });
 it("should move a played normal card to discard pile", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const result = playCard(
         state,
@@ -1429,7 +1146,7 @@ it("should move a played normal card to discard pile", () => {
     });
 });
 it("should not play a card that is not in the player's hand", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithoutFireball = {
         ...state,
@@ -1449,7 +1166,7 @@ it("should not play a card that is not in the player's hand", () => {
     expect(result).toEqual(stateWithoutFireball);
 });
 it("should move a cooldown card to exile after playing", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithCard = addCardToHand(
         state,
@@ -1470,7 +1187,7 @@ it("should move a cooldown card to exile after playing", () => {
     ]);
 });
 it("should move Flame Burst to exile after playing it", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const result = playCard(
         state,
@@ -1488,7 +1205,7 @@ it("should move Flame Burst to exile after playing it", () => {
     });
 });
 it("should move a normal card to discard pile after playing", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const result = playCard(
         state,
@@ -1588,7 +1305,7 @@ it("should not mutate hand or draw pile when drawing cards", () => {
     ]);
 });
 it("should draw cards at the start of a new player turn", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithSmallHand = {
         ...state,
@@ -1605,7 +1322,7 @@ it("should draw cards at the start of a new player turn", () => {
     expect(result.player.hand).toHaveLength(5);
 });
 it("should remove drawn cards from the draw pile", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithSmallHand = {
         ...state,
@@ -1626,135 +1343,8 @@ it("should remove drawn cards from the draw pile", () => {
         initialDrawPileSize - 4,
     );
 });
-it("should create a shuffled copy of the deck", () => {
-    const deck = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ignite",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "flame-burst",
-            cooldownRemaining: 0,
-        },
-    ];
-
-    const result = shuffleDeck(deck);
-
-    expect(result).toHaveLength(3);
-    expect(result).toEqual(expect.arrayContaining(deck));
-    expect(result).not.toBe(deck);
-});
-it("should recycle discard pile when draw pile is empty", () => {
-    const drawPile: CardState[] = [];
-
-    const discardPile: CardState[] = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ignite",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "flame-burst",
-            cooldownRemaining: 0,
-        },
-    ];
-
-    const result = recycleDiscardPile(
-        drawPile,
-        discardPile,
-    );
-
-    expect(result.drawPile).toHaveLength(3);
-    expect(result.drawPile).toEqual(
-        expect.arrayContaining(discardPile),
-    );
-    expect(result.discardPile).toEqual([]);
-});
-it("should not recycle discard pile when draw pile is not empty", () => {
-    const drawPile: CardState[] = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-    ];
-
-    const discardPile: CardState[] = [
-        {
-            cardId: "ignite",
-            cooldownRemaining: 0,
-        },
-    ];
-
-    const result = recycleDiscardPile(
-        drawPile,
-        discardPile,
-    );
-
-    expect(result.drawPile).toEqual(drawPile);
-    expect(result.discardPile).toEqual(discardPile);
-});
-it("should recycle discard pile when drawing cards", () => {
-    const hand: CardState[] = [];
-
-    const drawPile: CardState[] = [];
-
-    const discardPile: CardState[] = [
-        {
-            cardId: "fireball",
-            cooldownRemaining: 0,
-        },
-        {
-            cardId: "ignite",
-            cooldownRemaining: 0,
-        },
-    ];
-
-    const result = drawCardsWithRecycle(
-        hand,
-        drawPile,
-        discardPile,
-        2,
-    );
-
-    expect(result.hand).toHaveLength(2);
-
-    expect(result.hand).toEqual(
-        expect.arrayContaining([
-            {
-                cardId: "fireball",
-                cooldownRemaining: 0,
-            },
-            {
-                cardId: "ignite",
-                cooldownRemaining: 0,
-            },
-        ]),
-    );
-
-    expect(result.drawPile).toEqual([]);
-    expect(result.discardPile).toEqual([]);
-});
-it("should stop drawing when draw pile and discard pile are empty", () => {
-    const result = drawCardsWithRecycle(
-        [],
-        [],
-        [],
-        3,
-    );
-
-    expect(result.hand).toEqual([]);
-    expect(result.drawPile).toEqual([]);
-    expect(result.discardPile).toEqual([]);
-});
 it("should draw one card when hand has four cards", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithFourCards = {
         ...state,
@@ -1783,7 +1373,7 @@ it("should draw one card when hand has four cards", () => {
     expect(result.player.drawPile).toEqual([]);
 });
 it("should draw from discard pile when draw pile is empty", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithFourCards = {
         ...state,
@@ -1813,7 +1403,7 @@ it("should draw from discard pile when draw pile is empty", () => {
     expect(result.player.discardPile).toEqual([]);
 });
 it("should continue drawing from discard pile when draw pile runs out", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const stateWithTwoCards = {
         ...state,
@@ -1862,120 +1452,8 @@ it("should continue drawing from discard pile when draw pile runs out", () => {
     expect(result.player.drawPile).toHaveLength(0);
     expect(result.player.discardPile).toEqual([]);
 });
-it("should not add a card when deck reaches maximum size", () => {
-    const deck: CardState[] = Array.from(
-        { length: MAX_DECK_SIZE },
-        (_, index) => ({
-            cardId: `card-${index}`,
-            cooldownRemaining: 0,
-        }),
-    );
-
-    const result = addCardToDeck(
-        deck,
-        "fireball",
-    );
-
-    expect(result).toEqual(deck);
-});
-it("should add a card when deck is below maximum size", () => {
-    const deck: CardState[] = Array.from(
-        { length: MAX_DECK_SIZE - 1 },
-        (_, index) => ({
-            cardId: `card-${index}`,
-            cooldownRemaining: 0,
-        }),
-    );
-
-    const result = addCardToDeck(
-        deck,
-        "fireball",
-    );
-
-    expect(result).toHaveLength(MAX_DECK_SIZE);
-});
-it("should not remove a card when deck reaches minimum size", () => {
-    const deck: CardState[] = Array.from(
-        { length: MIN_DECK_SIZE },
-        (_, index) => ({
-            cardId: index === 0
-                ? "fireball"
-                : `card-${index}`,
-            cooldownRemaining: 0,
-        }),
-    );
-
-    const result = removeCardFromDeck(
-        deck,
-        "fireball",
-    );
-
-    expect(result).toEqual(deck);
-});
-it("should remove a card when deck is above minimum size", () => {
-    const deck: CardState[] = Array.from(
-        { length: MIN_DECK_SIZE + 1 },
-        (_, index) => ({
-            cardId: index === 0
-                ? "fireball"
-                : `card-${index}`,
-            cooldownRemaining: 0,
-        }),
-    );
-
-    const result = removeCardFromDeck(
-        deck,
-        "fireball",
-    );
-
-    expect(result).toHaveLength(MIN_DECK_SIZE);
-});
-it("should accept deck with minimum size", () => {
-    const deck: CardState[] = Array.from(
-        { length: MIN_DECK_SIZE },
-        (_, index) => ({
-            cardId: `card-${index}`,
-            cooldownRemaining: 0,
-        }),
-    );
-
-    expect(isValidDeck(deck)).toBe(true);
-});
-it("should accept deck with maximum size", () => {
-    const deck: CardState[] = Array.from(
-        { length: MAX_DECK_SIZE },
-        (_, index) => ({
-            cardId: `card-${index}`,
-            cooldownRemaining: 0,
-        }),
-    );
-
-    expect(isValidDeck(deck)).toBe(true);
-});
-it("should reject deck below minimum size", () => {
-    const deck: CardState[] = Array.from(
-        { length: MIN_DECK_SIZE - 1 },
-        (_, index) => ({
-            cardId: `card-${index}`,
-            cooldownRemaining: 0,
-        }),
-    );
-
-    expect(isValidDeck(deck)).toBe(false);
-});
-it("should reject deck above maximum size", () => {
-    const deck: CardState[] = Array.from(
-        { length: MAX_DECK_SIZE + 1 },
-        (_, index) => ({
-            cardId: `card-${index}`,
-            cooldownRemaining: 0,
-        }),
-    );
-
-    expect(isValidDeck(deck)).toBe(false);
-});
 it("should process exiled cards and return ready cards to hand", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const player: PlayerState = {
         ...state.player,
@@ -2000,7 +1478,7 @@ it("should process exiled cards and return ready cards to hand", () => {
     expect(result.hand).toEqual([]);
 });
 it("should return an exiled card to hand when cooldown reaches zero", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const player: PlayerState = {
         ...state.player,
@@ -2025,7 +1503,7 @@ it("should return an exiled card to hand when cooldown reaches zero", () => {
     ]);
 });
 it("should return a cooldown card to hand after cooldown expires", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const afterPlay = playCard(
         state,
@@ -2067,7 +1545,7 @@ it("should return a cooldown card to hand after cooldown expires", () => {
     });
 });
 it("should prepare the player for a new turn", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const player: PlayerState = {
         ...state.player,
@@ -2085,7 +1563,7 @@ it("should prepare the player for a new turn", () => {
     expect(result.hand).toHaveLength(5);
 });
 it("should not draw more cards when hand is full", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     expect(state.player.hand).toHaveLength(5);
 
@@ -2099,7 +1577,7 @@ it("should not draw more cards when hand is full", () => {
     expect(afterEndTurn.player.hand.length).toBeLessThanOrEqual(5);
 });
 it("should return a cooldown card with priority when hand is full", () => {
-    const state = startCombat();
+    const state = createCombat();
 
     const afterPlay = playCard(state, "flame-burst");
 

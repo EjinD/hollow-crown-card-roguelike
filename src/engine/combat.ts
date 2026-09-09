@@ -3,7 +3,6 @@ import { cards } from "../data/cards";
 import { enemies } from "../data/enemies";
 import { cloneDeck, drawCards, drawCardsWithRecycle } from "../data/deck";
 import { MAX_HAND_SIZE } from "../consts/game";
-import { startRun } from "../state/run";
 
 export function startPlayerTurn(
     player: PlayerState,
@@ -37,8 +36,8 @@ export function startPlayerTurn(
 }
 
 export function startCombat(
-    run: RunState = startRun(),
-    enemyId: string = enemies[0].id,
+    run: RunState,
+    enemyId: string
 ): CombatState {
     const enemy = enemies.find((candidate) => candidate.id === enemyId)
         ?? enemies[0];
