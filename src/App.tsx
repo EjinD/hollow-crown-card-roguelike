@@ -9,8 +9,8 @@ import {
     startRun,
     selectNextNode,
 } from "./state/run";
-
 import MapScreen from "./components/mapScreen";
+import CombatScreen from "./components/CombatScreen";
 
 export default function App() {
     const [run, setRun] = useState<RunState>(
@@ -24,6 +24,28 @@ export default function App() {
     "map" | "combat"
 >("map");
 
+    function handleEnterCurrentNode() {
+    const currentNode = run.map.nodes.find(
+        (node) =>
+            node.id === run.map.currentNodeId,
+    );
+
+    if (!currentNode) {
+        return;
+    }
+
+    if (
+        currentNode.type === "battle" ||
+        currentNode.type === "elite" ||
+        currentNode.type === "boss"
+    ) {
+        const newCombat =
+            startCurrentCombat(run);
+
+        setCombat(newCombat);
+        setScreen("combat");
+    }
+}
 
     function handleSelectNode(
     nodeId: string,
@@ -67,26 +89,21 @@ export default function App() {
     void combat;
     void setCombat;
 
-     /*return (
+     return (
     <>
         {screen === "map" && (
             <MapScreen
-                run={run}
-                onSelectNode={handleSelectNode}
-            />
+            run={run}
+            onSelectNode={handleSelectNode}
+            onEnterCurrentNode={
+            handleEnterCurrentNode
+    }
+/>
         )}
 
         {screen === "combat" && combat && (
-            <div className="min-h-screen bg-black text-white">
-                <h1 className="p-10 text-4xl">
-                    Combat
-                </h1>
-
-                <p className="px-10">
-                    Enemy: {combat.enemy.name}
-                </p>
-            </div>
+            <CombatScreen combat={combat} />
         )}
     </>
-); */
+); 
 }

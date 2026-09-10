@@ -99,7 +99,7 @@ export default function MapNode({
     return (
         <button
             type="button"
-            disabled={!isAvailable}
+            disabled={!isAvailable && !isCurrent}
             onClick={() => onClick(node.id)}
             aria-label={getNodeLabel(node.type)}
             className={[

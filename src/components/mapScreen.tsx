@@ -1,7 +1,6 @@
 import type { RunState } from "../types/game";
 
 import {
-    getCurrentMapNode,
     getAvailableNextNodes,
 } from "../state/run";
 
@@ -10,14 +9,14 @@ import MapConnections from "./mapConnections";
 interface MapScreenProps {
     run: RunState;
     onSelectNode: (nodeId: string) => void;
+    onEnterCurrentNode: () => void;
 }
 
 export default function MapScreen({
     run,
     onSelectNode,
+    onEnterCurrentNode
 }: MapScreenProps) {
-        const currentNode = getCurrentMapNode(run);
-
         const availableNodes =
         getAvailableNextNodes(run);
 
@@ -45,10 +44,15 @@ export default function MapScreen({
         }
 
         function handleNodeSelect(
-        nodeId: string,
-    ) {
-        onSelectNode(nodeId);
+    nodeId: string,
+) {
+    if (nodeId === run.map.currentNodeId) {
+        onEnterCurrentNode();
+        return;
     }
+
+    onSelectNode(nodeId);
+}
     function getNodePosition(
     nodeId: string,
     nodes: typeof run.map.nodes,
