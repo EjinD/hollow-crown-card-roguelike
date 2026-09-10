@@ -582,7 +582,6 @@ export function processEndTurn(
         enemy: {
             ...state.enemy,
             hp: newEnemyHp,
-            block: 0,
             statusEffects: updatedEnemyStatusEffects,
         },
         phase: "player-turn",

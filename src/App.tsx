@@ -4,13 +4,28 @@ import type {
     CombatState,
     RunState,
 } from "./types/game";
-import { startCurrentCombat } from "./state/run";
 import {
+    advanceCombat,
+    endPlayerTurn,
+    playCard,
+} from "./engine/combat";
+import { 
+    claimCardReward,
+    startCurrentCombat,
+    completeCombat,
+    skipReward,
     startRun,
     selectNextNode,
 } from "./state/run";
 import MapScreen from "./components/mapScreen";
 import CombatScreen from "./components/CombatScreen";
+import RewardScreen from "./components/RewardScreen";
+type GameScreen =
+    | "map"
+    | "combat"
+    | "reward"
+    | "game-over";
+
 
 export default function App() {
     const [run, setRun] = useState<RunState>(
@@ -20,9 +35,10 @@ export default function App() {
     const [combat, setCombat] =
         useState<CombatState | null>(null);
 
-        const [screen, setScreen] = useState<
-    "map" | "combat"
->("map");
+
+
+const [screen, setScreen] =
+    useState<GameScreen>("map");
 
     function handleEnterCurrentNode() {
     const currentNode = run.map.nodes.find(
@@ -85,9 +101,96 @@ export default function App() {
         setScreen("combat");
     }
 }
+function finishCombat(
+    combatState: CombatState,
+) {
+    const nextRun = completeCombat(
+        run,
+        combatState,
+    );
 
-    void combat;
-    void setCombat;
+    setRun(nextRun);
+    setCombat(combatState);
+
+    if (combatState.phase === "defeat") {
+        setScreen("game-over");
+        return;
+    }
+
+    if (
+        nextRun.status === "completed" &&
+        nextRun.result === "victory"
+    ) {
+        setScreen("game-over");
+        return;
+    }
+
+    setScreen("reward");
+}
+function handlePlayCard(cardId: string) {
+    if (!combat) {
+        return;
+    }
+
+    const nextCombat = playCard(
+        combat,
+        cardId,
+    );
+
+    if (
+        nextCombat.phase === "victory" ||
+        nextCombat.phase === "defeat"
+    ) {
+        finishCombat(nextCombat);
+        return;
+    }
+
+    setCombat(nextCombat);
+}
+
+function handleClaimReward(cardId: string) {
+    const nextRun = claimCardReward(
+        run,
+        cardId,
+    );
+
+    setRun(nextRun);
+
+    if (nextRun.pendingReward === null) {
+        setScreen("map");
+    }
+}
+function handleEndTurn() {
+    if (!combat) {
+        return;
+    }
+
+    const afterEndPlayerTurn =
+        endPlayerTurn(combat);
+
+    const nextCombat =
+        advanceCombat(
+            afterEndPlayerTurn,
+        );
+
+    if (
+        nextCombat.phase === "victory" ||
+        nextCombat.phase === "defeat"
+    ) {
+        finishCombat(nextCombat);
+        return;
+    }
+
+    setCombat(nextCombat);
+}
+
+function handleSkipReward() {
+    const nextRun = skipReward(run);
+
+    setRun(nextRun);
+    setScreen("map");
+}
+
 
      return (
     <>
@@ -102,8 +205,22 @@ export default function App() {
         )}
 
         {screen === "combat" && combat && (
-            <CombatScreen combat={combat} />
+            <CombatScreen
+                combat={combat}
+                onPlayCard={handlePlayCard}
+                onEndTurn={handleEndTurn}
+        />
+        
         )}
-    </>
+        
+        {screen === "reward" && run.pendingReward && (
+            <RewardScreen
+                reward={run.pendingReward}
+                onClaim={handleClaimReward}
+                onSkip={handleSkipReward}
+    />
+)}
+        </>
+    
 ); 
 }
