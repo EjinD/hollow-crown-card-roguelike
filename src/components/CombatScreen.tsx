@@ -9,14 +9,18 @@ import battlefieldImage from "../assets/backgrounds/battlefield.png";
 
 import CombatCharacter from "./CombatCharacter";
 import Hand from "./Hands";
+import CombatHeader from "./CombatHeader";
+import StatusEffects from "./StatusEffects";
+import CardPile from "./CardPile";
 interface CombatScreenProps {
     combat: CombatState;
+    gold: number;
     onPlayCard: (cardId: string) => void;
     onEndTurn: () => void;
 }
-
 export default function CombatScreen({
     combat,
+    gold,
     onPlayCard,
     onEndTurn,
 }: CombatScreenProps) {
@@ -63,7 +67,7 @@ const enemyImage =
     return (
         <main className="min-h-screen overflow-hidden bg-[#0b0907] text-stone-200">
             <div className="relative min-h-screen w-full overflow-hidden">
-
+                <CombatHeader gold={gold} />
                 {/* BACKGROUND */}
                 
                 <div className="absolute inset-0">
@@ -113,6 +117,11 @@ const enemyImage =
                                     }}
                                 />
                             </div>
+
+                            <StatusEffects
+                                effects={combat.player.statusEffects}
+                            />
+
                         </div>
                     </div>
 
@@ -163,7 +172,11 @@ const enemyImage =
                                     }}
                                 />
                             </div>
+                            
                         </div>
+                            <StatusEffects
+                               effects={combat.enemy.statusEffects} 
+                            />
                     </div>
                 </div>
 
@@ -227,8 +240,14 @@ const enemyImage =
                 {/* BOTTOM GAMEPLAY AREA */}
                 <section className="absolute inset-x-0 bottom-0 z-20 px-8 pb-6">
 
-                    <div className="flex items-end gap-6">
+                    <div className="flex items-end gap-4">
 
+                        {/* DRAW PILE */}
+                        <CardPile
+                            label="Draw"
+                            count={combat.player.drawPile.length}
+                            variant="draw"
+                        />
                         {/* END TURN */}
                         <button
                             type="button"
@@ -244,6 +263,18 @@ const enemyImage =
                             cards={combat.player.hand}
                             disabled={!isPlayerTurn}
                             onPlayCard={onPlayCard}
+                        />
+                        {/* DISCARD */}
+                        <CardPile
+                            label="Discard"
+                            count={combat.player.discardPile.length}
+                            variant="discard"
+                        />
+                        { /* EXILED */}
+                        <CardPile
+                            label="Exiled"
+                            count={combat.player.exiledCards.length}
+                            variant="exiled"
                         />
 
                         {/* ACTIONS */}

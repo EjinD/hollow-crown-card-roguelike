@@ -207,6 +207,7 @@ function handleSkipReward() {
         {screen === "combat" && combat && (
             <CombatScreen
                 combat={combat}
+                gold={run.gold}
                 onPlayCard={handlePlayCard}
                 onEndTurn={handleEndTurn}
         />
