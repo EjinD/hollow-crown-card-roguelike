@@ -8,10 +8,9 @@ import playerImage from "../assets/characters/player.png";
 import battlefieldImage from "../assets/backgrounds/battlefield.png";
 
 import CombatCharacter from "./CombatCharacter";
-import Hand from "./Hands";
 import CombatHeader from "./CombatHeader";
 import StatusEffects from "./StatusEffects";
-import CardPile from "./CardPile";
+import CombatTable from "./CombatTable";
 interface CombatScreenProps {
     combat: CombatState;
     gold: number;
@@ -202,9 +201,9 @@ const enemyImage =
                         </div>
 
                         {/* ENEMY INTENT */}
-                        <div className="absolute right-[35%] top-24">
-                            <div className="rounded-xl border border-red-900/70 bg-black/50 px-6 py-4 text-center shadow-xl">
-                                <p className="text-xs uppercase tracking-[0.25em] text-stone-500">
+                        <div className="absolute right-[3%] top-[32%] z-20">
+                            <div className="w-44 rounded-xl border border-red-900/70 bg-[#100908]/90 px-5 py-4 text-center shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
+                                <p className="text-[10px] uppercase tracking-[0.3em] text-stone-500">
                                     Intent
                                 </p>
 
@@ -215,20 +214,14 @@ const enemyImage =
                                 {"damage" in combat.enemy.intent && (
                                     <p className="mt-1 text-sm text-red-400">
                                         Damage{" "}
-                                        {
-                                            combat.enemy.intent
-                                                .damage
-                                        }
+                                        {combat.enemy.intent.damage}
                                     </p>
                                 )}
 
                                 {"amount" in combat.enemy.intent && (
                                     <p className="mt-1 text-sm text-stone-400">
                                         Amount{" "}
-                                        {
-                                            combat.enemy.intent
-                                                .amount
-                                        }
+                                        {combat.enemy.intent.amount}
                                     </p>
                                 )}
                             </div>
@@ -238,58 +231,22 @@ const enemyImage =
                 </section>
 
                 {/* BOTTOM GAMEPLAY AREA */}
-                <section className="absolute inset-x-0 bottom-0 z-20 px-8 pb-6">
-
-                    <div className="flex items-end gap-4">
-
-                        {/* DRAW PILE */}
-                        <CardPile
-                            label="Draw"
-                            count={combat.player.drawPile.length}
-                            variant="draw"
-                        />
-                        {/* END TURN */}
-                        <button
-                            type="button"
-                            disabled={!isPlayerTurn}
-                            onClick={onEndTurn}
-                            className="mb-4 shrink-0 border border-orange-800 bg-[#24120d] px-8 py-4 font-serif text-sm font-bold uppercase tracking-[0.18em] text-orange-200 shadow-lg transition hover:bg-[#351912] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                            End Turn
-                        </button>
-
-                        {/* HAND */}
-                        <Hand
-                            cards={combat.player.hand}
-                            disabled={!isPlayerTurn}
-                            onPlayCard={onPlayCard}
-                        />
-                        {/* DISCARD */}
-                        <CardPile
-                            label="Discard"
-                            count={combat.player.discardPile.length}
-                            variant="discard"
-                        />
-                        { /* EXILED */}
-                        <CardPile
-                            label="Exiled"
-                            count={combat.player.exiledCards.length}
-                            variant="exiled"
-                        />
-
-                        {/* ACTIONS */}
-                        <div className="mb-4 flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded-full border border-stone-700 bg-[#15100d]">
-                            <span className="text-2xl font-bold text-orange-300">
-                                {combat.player.actions}
-                            </span>
-
-                            <span className="text-[9px] uppercase tracking-widest text-stone-500">
-                                Actions
-                            </span>
-                        </div>
-
-                    </div>
-                </section>
+                    <CombatTable
+                        hand={combat.player.hand}
+                        drawPileCount={
+                            combat.player.drawPile.length
+                        }
+                        discardPileCount={
+                            combat.player.discardPile.length
+                        }
+                        exiledCount={
+                            combat.player.exiledCards.length
+                        }
+                        actions={combat.player.actions}
+                        isPlayerTurn={isPlayerTurn}
+                        onPlayCard={onPlayCard}
+                        onEndTurn={onEndTurn}
+                    />
 
             </div>
         </main>

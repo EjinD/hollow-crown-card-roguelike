@@ -15,8 +15,8 @@ export default function Hand({
     disabled = false,
     onPlayCard,
 }: HandProps) {
-    const [hoveredCardId, setHoveredCardId] =
-        useState<string | null>(null);
+    const [hoveredIndex, setHoveredIndex] =
+        useState<number | null>(null);
 
     const getRotation = (index: number) => {
         const total = cards.length;
@@ -30,7 +30,9 @@ export default function Hand({
         return (index - middle) * 5;
     };
 
-    const getOffset = (index: number) => {
+    const getVerticalOffset = (
+        index: number,
+    ) => {
         const total = cards.length;
 
         if (total <= 1) {
@@ -40,46 +42,46 @@ export default function Hand({
         const middle = (total - 1) / 2;
         const distance = Math.abs(index - middle);
 
-        return distance * 4;
+        return distance * 5;
     };
 
     return (
         <div
-            className="relative flex h-60 w-full items-end justify-center"
+            className="relative flex h-64 w-full items-end justify-center"
             onMouseLeave={() =>
-                setHoveredCardId(null)
+                setHoveredIndex(null)
             }
         >
             {cards.map((card, index) => {
                 const isHovered =
-                    hoveredCardId === card.cardId;
+                    hoveredIndex === index;
 
                 const rotation =
                     getRotation(index);
 
-                const offset =
-                    getOffset(index);
+                const verticalOffset =
+                    getVerticalOffset(index);
 
                 return (
                     <div
                         key={`${card.cardId}-${index}`}
-                        className="relative transition-all duration-200 ease-out"
+                        className="relative origin-bottom transition-all duration-200 ease-out"
                         style={{
                             marginLeft:
                                 index === 0
                                     ? 0
-                                    : "-32px",
+                                    : "-30px",
+
                             zIndex: isHovered
                                 ? 100
                                 : index,
+
                             transform: isHovered
-                                ? "translateY(-35px) rotate(0deg)"
-                                : `translateY(${offset}px) rotate(${rotation}deg)`,
+                                ? "translateY(-45px) rotate(0deg) scale(1.04)"
+                                : `translateY(${verticalOffset}px) rotate(${rotation}deg)`,
                         }}
                         onMouseEnter={() =>
-                            setHoveredCardId(
-                                card.cardId,
-                            )
+                            setHoveredIndex(index)
                         }
                     >
                         <Card
