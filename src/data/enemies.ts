@@ -17,7 +17,9 @@ export const enemies: EnemyDefinition[] = [
     ],
     reward: {
       gold: 10,
-      cardChoices: ["flare", "kindle", "renewal-flame"],
+      cardChoices: ["fireball",
+        "ember-strike",
+        "flame-guard",],
     },
   },
   {
@@ -36,7 +38,9 @@ export const enemies: EnemyDefinition[] = [
     ],
     reward: {
       gold: 15,
-      cardChoices: ["flare", "kindle", "renewal-flame"]
+      cardChoices: [ "ember-wall",
+        "ignite",
+        "scorch",]
     }
   },
   {
@@ -50,7 +54,9 @@ export const enemies: EnemyDefinition[] = [
     ],
     reward: {
       gold: 20,
-      cardChoices: ["flare", "kindle", "renewal-flame"]
+      cardChoices: ["flame-burst",
+        "ember-guard",
+        "fire-storm",]
     }
   },
   {
@@ -79,9 +85,9 @@ export const enemies: EnemyDefinition[] = [
     reward: {
         gold: 50,
         cardChoices: [
-            "flare",
-            "kindle",
-            "renewal-flame",
+                    "inferno",
+                    "fire-storm",
+                    "flame-burst",
         ],
     },
 },

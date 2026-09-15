@@ -2,6 +2,7 @@ import type {
     MapNode,
     MapNodeType,
     MapState,
+    ShopOffer,
 } from "../types/game";
 
 const BATTLE_ENEMY_POOLS: Record<number, string[]> = {
@@ -42,7 +43,6 @@ function assignBattleEnemies(
         node.enemyId = getRandomEnemyId(enemyIds);
     }
 }
-
 
 function createLayer(
     layerIndex: number,
@@ -119,13 +119,34 @@ function shuffleNodeTypes(
     return shuffled;
 }
 
+function createShopOffers(): ShopOffer[] {
+    return [
+        {
+            cardId: "fireball",
+            price: 5,
+            purchased: false,
+        },
+        {
+            cardId: "flame-burst",
+            price: 8,
+            purchased: false,
+        },
+        {
+            cardId: "ember-strike",
+            price: 10,
+            purchased: false,
+        },
+    ];
+}
+
 export function generateMap(): MapState {
     const layer1 = createLayer(1, ["battle"]);
+
     const layer2Count = randomInt(2, 3);
     const layer3Count = randomInt(2, 3);
     const layer4Count = randomInt(2, 3);
 
-     const layer2Types: MapNodeType[] = [
+    const layer2Types: MapNodeType[] = [
         "battle",
         "event",
         "shop",
@@ -143,28 +164,28 @@ export function generateMap(): MapState {
     ];
 
     const layer2 = createLayer(
-    2,
-    shuffleNodeTypes(layer2Types).slice(
-        0,
-        layer2Count,
-    ),
+        2,
+        shuffleNodeTypes(layer2Types).slice(
+            0,
+            layer2Count,
+        ),
     );
 
     const layer3 = createLayer(
-    3,
-    shuffleNodeTypes(layer3Types).slice(
-        0,
-        layer3Count,
-    ),
+        3,
+        shuffleNodeTypes(layer3Types).slice(
+            0,
+            layer3Count,
+        ),
     );
 
     const layer4 = createLayer(
-    4,
-    shuffleNodeTypes(layer4Types).slice(
-        0,
-        layer4Count,
-    ),
-);
+        4,
+        shuffleNodeTypes(layer4Types).slice(
+            0,
+            layer4Count,
+        ),
+    );
 
     const layer5 = createLayer(5, [
         "boss",
@@ -226,6 +247,12 @@ function assignNodeContent(
         if (node.type === "event") {
             node.eventId = "remove-random-card";
         }
+
+        if (node.type === "shop") {
+            node.shopOffers = createShopOffers();
+            node.shopHealPrice = 10;
+            node.shopHealPurchased = false;
+        }
     }
 }
 
@@ -259,7 +286,8 @@ export function canReachBoss(
     map: MapState,
 ): boolean {
     const startNode = map.nodes.find(
-        (node) => node.id === map.currentNodeId,
+        (node) =>
+            node.id === map.currentNodeId,
     );
 
     if (!startNode) {
@@ -272,14 +300,18 @@ export function canReachBoss(
     while (queue.length > 0) {
         const currentNodeId = queue.shift();
 
-        if (!currentNodeId || visited.has(currentNodeId)) {
+        if (
+            !currentNodeId ||
+            visited.has(currentNodeId)
+        ) {
             continue;
         }
 
         visited.add(currentNodeId);
 
         const currentNode = map.nodes.find(
-            (node) => node.id === currentNodeId,
+            (node) =>
+                node.id === currentNodeId,
         );
 
         if (!currentNode) {
@@ -295,4 +327,3 @@ export function canReachBoss(
 
     return false;
 }
-

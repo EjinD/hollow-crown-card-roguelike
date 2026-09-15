@@ -4,7 +4,7 @@ export const cards: CardDefinition[] = [
     id: "fireball",
     name: "Fireball",
     cooldown: 0,
-    effects: [{ type: "damage", amount: 2 }],
+    effects: [{ type: "damage", amount: 30 }],
 },
 {
     id: "flame-burst",

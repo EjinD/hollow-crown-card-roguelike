@@ -9,7 +9,11 @@ import igniteImage from "../assets/cards/ignite.webp";
 import scorchImage from "../assets/cards/scorch.webp";
 import fireStormImage from "../assets/cards/fire-storm.webp";
 
-import type { CardState, CardEffect } from "../types/game";
+import type {
+    CardEffect,
+    CardState,
+} from "../types/game";
+
 import { cards } from "../data/cards";
 
 const cardArt: Record<string, string> = {
@@ -30,6 +34,7 @@ interface CardProps {
     disabled?: boolean;
     onClick: (cardId: string) => void;
     isHovered?: boolean;
+    isPlaying?: boolean;
 }
 
 function getEffectLabel(
@@ -60,23 +65,23 @@ function getEffectDescription(
     effect: CardEffect,
 ): string | null {
     switch (effect.type) {
+        case "damage":
+            return `Deal ${effect.amount} damage to the enemy.`;
+
         case "burn":
-            return "Deals damage at the start of each turn. Stacks.";
+            return `Apply ${effect.amount} Burn for ${effect.duration} turn${effect.duration === 1 ? "" : "s"}.`;
 
         case "block":
-            return "Absorbs incoming damage before HP is reduced.";
+            return `Gain ${effect.amount} Block.`;
 
         case "gain-action":
-            return "Adds an additional action to this turn.";
+            return `Gain ${effect.amount} additional action${effect.amount === 1 ? "" : "s"}.`;
 
         case "draw":
-            return "Draws cards from your deck.";
+            return `Draw ${effect.amount} card${effect.amount === 1 ? "" : "s"}.`;
 
         case "heal":
-            return "Restores lost HP.";
-
-        default:
-            return null;
+            return `Restore ${effect.amount} HP.`;
     }
 }
 
@@ -104,88 +109,210 @@ function getEffectIcon(
     }
 }
 
+function getEffectAccent(
+    effect: CardEffect,
+): string {
+    switch (effect.type) {
+        case "damage":
+            return "text-orange-300";
+
+        case "burn":
+            return "text-red-300";
+
+        case "block":
+            return "text-sky-300";
+
+        case "gain-action":
+            return "text-yellow-300";
+
+        case "draw":
+            return "text-violet-300";
+
+        case "heal":
+            return "text-emerald-300";
+    }
+}
+
 export default function Card({
     card,
     disabled = false,
     onClick,
     isHovered = false,
+    isPlaying = false,
 }: CardProps) {
     const definition = cards.find(
         (item) => item.id === card.cardId,
     );
 
-    const artwork = cardArt[card.cardId];
-
     if (!definition) {
         return null;
     }
 
+    const artwork = cardArt[card.cardId];
+
     const isOnCooldown =
         card.cooldownRemaining > 0;
+
+    const hasMultipleEffects =
+        definition.effects.length > 1;
 
     return (
         <button
             type="button"
-            disabled={disabled}
-            onClick={() => onClick(card.cardId)}
+            disabled={
+                disabled ||
+                isPlaying
+            }
+            onClick={() =>
+                onClick(card.cardId)
+            }
+            aria-label={definition.name}
             className={[
-                "group relative flex h-52 w-36 origin-bottom flex-col overflow-hidden rounded-xl border-2 bg-[#17100d] text-left shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition-all duration-200",
-                isHovered
-                    ? "border-orange-500 shadow-[0_0_28px_rgba(234,88,12,0.45)]"
-                    : "border-stone-700",
-                disabled
-                    ? "cursor-not-allowed opacity-45"
-                    : "cursor-pointer hover:border-orange-500",
+                "group relative flex h-[240px] w-[164px] origin-bottom flex-col overflow-hidden rounded-[14px]",
+                "border border-stone-700/90",
+                "bg-[#120e0b]",
+                "text-left text-stone-100",
+                "shadow-[0_12px_28px_rgba(0,0,0,0.55)]",
+                "transition-[transform,box-shadow,border-color,opacity] duration-200 ease-out",
+                "focus:outline-none",
+                "focus-visible:ring-2 focus-visible:ring-orange-400/70",
+
+                isHovered && !isPlaying
+                    ? [
+                          "z-50",
+                          "-translate-y-2",
+                          "scale-[1.04]",
+                          "border-orange-400",
+                          "shadow-[0_18px_40px_rgba(0,0,0,0.65),0_0_30px_rgba(234,88,12,0.22)]",
+                      ].join(" ")
+                    : "",
+
+                isPlaying
+                    ? [
+                          "z-[200]",
+                          "pointer-events-none",
+                          "border-orange-300",
+                          "shadow-[0_0_45px_rgba(234,88,12,0.45)]",
+                          "animate-[cardPlay_360ms_cubic-bezier(0.22,1,0.36,1)_forwards]",
+                      ].join(" ")
+                    : "",
+
+                disabled && !isPlaying
+                    ? [
+                          "cursor-not-allowed",
+                          "opacity-40",
+                          "grayscale-[0.3]",
+                      ].join(" ")
+                    : !disabled &&
+                        !isPlaying
+                      ? [
+                            "cursor-pointer",
+                            "hover:-translate-y-1",
+                            "hover:border-orange-500/80",
+                            "hover:shadow-[0_16px_34px_rgba(0,0,0,0.6),0_0_24px_rgba(234,88,12,0.18)]",
+                        ].join(" ")
+                      : "",
             ].join(" ")}
         >
-            {/* ART AREA */}
-            <div className="relative h-24 shrink-0 overflow-hidden bg-[radial-gradient(circle_at_center,rgba(180,55,15,0.35),transparent_70%)]">
-                <div className="absolute inset-0 flex items-center justify-center">
+            {/* Outer frame */}
+            <div className="pointer-events-none absolute inset-0 rounded-[14px] border border-white/[0.04]" />
+
+            {/* Play glow */}
+            {isPlaying && (
+                <div className="pointer-events-none absolute inset-0 z-30 bg-orange-400/10" />
+            )}
+
+            {/* Top accent */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-orange-500/70 to-transparent" />
+
+            {/* Artwork */}
+            <div className="relative h-[122px] shrink-0 overflow-hidden border-b border-stone-800/90">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(188,63,18,0.28),transparent_72%)]" />
+
+                {artwork ? (
                     <img
                         src={artwork}
                         alt={definition.name}
                         draggable={false}
-                        className="h-full w-full object-cover"
+                        className={[
+                            "absolute inset-0 h-full w-full object-cover",
+                            "transition-transform duration-300",
+                            isPlaying
+                                ? "scale-[1.08]"
+                                : isHovered
+                                  ? "scale-[1.04]"
+                                  : "scale-100",
+                        ].join(" ")}
                     />
-                </div>
+                ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-xs uppercase tracking-[0.2em] text-stone-700">
+                        No Art
+                    </div>
+                )}
+
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-[#120e0b]/70" />
 
                 <div className="absolute left-3 top-2">
-                    <span className="text-[9px] uppercase tracking-[0.22em] text-stone-500">
+                    <span className="rounded-full border border-white/10 bg-black/45 px-2 py-1 text-[8px] uppercase tracking-[0.2em] text-stone-300 backdrop-blur-sm">
                         Spell
                     </span>
                 </div>
 
                 {isOnCooldown && (
-                    <div className="absolute right-3 top-2">
-                        <span className="rounded-full border border-red-900 bg-black/70 px-2 py-1 text-[10px] font-bold text-red-400">
-                            {card.cooldownRemaining}
-                        </span>
-                    </div>
+                    <>
+                        <div className="absolute inset-0 bg-black/35" />
+
+                        <div className="absolute right-3 top-2">
+                            <span className="flex h-7 min-w-7 items-center justify-center rounded-full border border-red-500/50 bg-black/75 px-2 text-xs font-bold text-red-300 shadow-[0_0_14px_rgba(220,38,38,0.25)]">
+                                {card.cooldownRemaining}
+                            </span>
+                        </div>
+                    </>
                 )}
             </div>
 
-            {/* CARD CONTENT */}
+            {/* Main content */}
             <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
+                <div className="relative mt-2.5">
+                    <h3 className="truncate text-center font-serif text-[13px] font-bold uppercase tracking-[0.08em] text-stone-100">
+                        {definition.name}
+                    </h3>
 
-                <h3 className="mt-2 text-center font-serif text-sm font-bold uppercase tracking-wide text-stone-100">
-                    {definition.name}
-                </h3>
+                    <div className="mx-auto mt-1 h-px w-8 bg-orange-500/40" />
+                </div>
 
-                <div className="mt-2 flex-1 overflow-hidden">
-                    <div className="space-y-1 text-center">
+                <div className="mt-2.5 flex-1 overflow-hidden">
+                    <div
+                        className={[
+                            "flex flex-col items-center",
+                            hasMultipleEffects
+                                ? "gap-1.5"
+                                : "gap-1",
+                        ].join(" ")}
+                    >
                         {definition.effects.map(
-                            (effect, index) => (
+                            (
+                                effect,
+                                index,
+                            ) => (
                                 <div
-                                    key={index}
-                                    className="flex items-center justify-center gap-1"
+                                    key={`${effect.type}-${index}`}
+                                    className="flex w-full items-center justify-center gap-1.5"
                                 >
-                                    <span className="text-xs">
+                                    <span
+                                        className={[
+                                            "text-[11px]",
+                                            getEffectAccent(
+                                                effect,
+                                            ),
+                                        ].join(" ")}
+                                    >
                                         {getEffectIcon(
                                             effect,
                                         )}
                                     </span>
 
-                                    <span className="text-[10px] text-stone-300">
+                                    <span className="text-[10px] font-medium tracking-wide text-stone-300">
                                         {getEffectLabel(
                                             effect,
                                         )}
@@ -195,52 +322,66 @@ export default function Card({
                         )}
                     </div>
 
-                    {isHovered && (
-                        <div className="mt-3 border-t border-stone-800 pt-2">
-                            {definition.effects.map(
-                                (effect, index) => {
-                                    const description =
-                                        getEffectDescription(
-                                            effect,
+                    {isHovered &&
+                        !isPlaying && (
+                            <div className="mt-2.5 border-t border-stone-800/80 pt-2">
+                                {definition.effects.map(
+                                    (
+                                        effect,
+                                        index,
+                                    ) => {
+                                        const description =
+                                            getEffectDescription(
+                                                effect,
+                                            );
+
+                                        return (
+                                            <p
+                                                key={`description-${effect.type}-${index}`}
+                                                className="mb-1 text-[8px] leading-[1.25] text-stone-500"
+                                            >
+                                                {
+                                                    description
+                                                }
+                                            </p>
                                         );
+                                    },
+                                )}
+                            </div>
+                        )}
+                </div>
 
-                                    if (!description) {
-                                        return null;
-                                    }
+                <div className="mt-2 border-t border-stone-800/80 pt-2">
+                    {isOnCooldown ? (
+                        <div className="flex items-center justify-center gap-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_7px_rgba(239,68,68,0.65)]" />
 
-                                    return (
-                                        <p
-                                            key={index}
-                                            className="mb-1 text-[9px] leading-tight text-stone-500"
-                                        >
-                                            <span className="text-stone-300">
-                                                {getEffectLabel(
-                                                    effect,
-                                                )}
-                                            </span>
-                                            {" — "}
-                                            {description}
-                                        </p>
-                                    );
-                                },
-                            )}
+                            <span className="text-[8px] font-medium uppercase tracking-[0.18em] text-red-400">
+                                Cooldown{" "}
+                                {
+                                    card.cooldownRemaining
+                                }
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center gap-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-orange-500/60" />
+
+                            <span className="text-[8px] font-medium uppercase tracking-[0.18em] text-stone-600">
+                                Ready
+                            </span>
                         </div>
                     )}
                 </div>
-
-                {/* COOLDOWN */}
-                <div className="mt-2 border-t border-stone-800 pt-2 text-center">
-                    {isOnCooldown ? (
-                        <span className="text-[9px] uppercase tracking-[0.18em] text-red-400">
-                            Cooldown {card.cooldownRemaining}
-                        </span>
-                    ) : (
-                        <span className="text-[9px] uppercase tracking-[0.18em] text-stone-600">
-                            Spell
-                        </span>
-                    )}
-                </div>
             </div>
+
+            {!disabled &&
+                !isPlaying && (
+                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                        <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+                        <div className="absolute inset-y-0 left-0 w-px bg-white/10" />
+                    </div>
+                )}
         </button>
     );
 }

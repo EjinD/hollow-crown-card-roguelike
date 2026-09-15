@@ -10,7 +10,10 @@ interface CombatTableProps {
     exiledCount: number;
     actions: number;
     isPlayerTurn: boolean;
-    onPlayCard: (cardId: string) => void;
+    onPlayCard: (
+        cardId: string,
+        sourceRect: DOMRect,
+    ) => void;
     onEndTurn: () => void;
 }
 
@@ -26,15 +29,12 @@ export default function CombatTable({
 }: CombatTableProps) {
     return (
         <section className="absolute inset-x-0 bottom-0 z-30 h-[360px] overflow-visible">
-
-            {/* TABLE SHAPE */}
             <svg
                 className="pointer-events-none absolute inset-0 h-full w-full"
                 viewBox="0 0 1000 360"
                 preserveAspectRatio="none"
                 aria-hidden="true"
             >
-                {/* Outer table */}
                 <polygon
                     points="
                         0,0
@@ -52,7 +52,6 @@ export default function CombatTable({
                     vectorEffect="non-scaling-stroke"
                 />
 
-                {/* Inner surface */}
                 <polygon
                     points="
                         3,5
@@ -70,7 +69,6 @@ export default function CombatTable({
                     vectorEffect="non-scaling-stroke"
                 />
 
-                {/* Top decorative edge */}
                 <polyline
                     points="
                         0,11
@@ -87,7 +85,6 @@ export default function CombatTable({
                     vectorEffect="non-scaling-stroke"
                 />
 
-                {/* Central hand recess */}
                 <polyline
                     points="
                         177,67
@@ -128,19 +125,18 @@ export default function CombatTable({
                 </defs>
             </svg>
 
-            {/* SUBTLE LIGHT */}
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(120,55,20,0.13),transparent_58%)]" />
 
-            {/* DRAW PILE */}
-            <div className="absolute bottom-7 left-8 z-40">
+            <div className="absolute bottom-6 left-8 z-40">
                 <CardPile
-                    label="Draw Pile"
-                    count={drawPileCount}
+                    label="Draw"
+                    count={
+                        drawPileCount
+                    }
                     variant="draw"
                 />
             </div>
 
-            {/* ACTIONS */}
             <div className="absolute left-[17%] top-[30px] z-40 flex h-24 w-24 items-center justify-center rounded-full border-2 border-orange-900 bg-[#100905]/95 shadow-[0_0_25px_rgba(110,40,10,0.25)]">
                 <div className="text-center">
                     <span className="block font-serif text-3xl font-bold text-orange-300">
@@ -153,7 +149,6 @@ export default function CombatTable({
                 </div>
             </div>
 
-            {/* END TURN */}
             <button
                 type="button"
                 disabled={!isPlayerTurn}
@@ -163,34 +158,38 @@ export default function CombatTable({
                 End Turn
             </button>
 
-            {/* HAND */}
-            <div className="absolute bottom-[65px] left-1/2 z-40 w-[820px] -translate-x-1/2">
+            <div className="absolute bottom-[48px] left-1/2 z-40 w-[820px] -translate-x-1/2">
                 <Hand
                     cards={hand}
-                    disabled={!isPlayerTurn}
-                    onPlayCard={onPlayCard}
+                    disabled={
+                        !isPlayerTurn
+                    }
+                    onPlayCard={
+                        onPlayCard
+                    }
                 />
             </div>
 
-            {/* DISCARD */}
-            <div className="absolute bottom-7 right-[12%] z-40">
+            <div className="absolute bottom-6 right-[13%] z-40">
                 <CardPile
-                    label="Discard Pile"
-                    count={discardPileCount}
+                    label="Discard"
+                    count={
+                        discardPileCount
+                    }
                     variant="discard"
                 />
             </div>
 
-            {/* EXILED */}
-            <div className="absolute bottom-7 right-8 z-40">
+            <div className="absolute bottom-6 right-8 z-40">
                 <CardPile
-                    label="Exiled / Cooldown"
-                    count={exiledCount}
+                    label="Exiled"
+                    count={
+                        exiledCount
+                    }
                     variant="exiled"
                 />
             </div>
 
-            {/* HAND LABEL */}
             <div className="absolute bottom-2 left-1/2 z-50 -translate-x-1/2">
                 <span className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
                     Hand {hand.length}
