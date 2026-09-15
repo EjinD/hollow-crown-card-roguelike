@@ -60,7 +60,7 @@ export default function CombatCharacter({
     return (
         <div
             className={[
-                "relative flex items-end justify-center",
+                "relative flex h-[min(30vw,460px)] w-[min(30vw,460px)] min-h-[300px] min-w-[300px] items-end justify-center",
                 characterEffect,
                 enemyActionClass,
             ].join(" ")}
@@ -120,7 +120,7 @@ export default function CombatCharacter({
                         : "Enemy"
                 }
                 draggable={false}
-                className="relative z-10 block max-h-[360px] max-w-[360px] select-none object-contain"
+                className="relative z-10 block h-full w-full select-none object-contain"
             />
         </div>
     );

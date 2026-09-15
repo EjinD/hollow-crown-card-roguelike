@@ -45,7 +45,9 @@ export interface CardState {
 }
 
 export interface StatusEffect {
-    type: "burn" | "weak";
+    type:
+        | "burn"
+        | "weak";
     amount: number;
     duration: number;
 }
@@ -57,6 +59,9 @@ export interface PlayerState {
     actions: number;
     statusEffects: StatusEffect[];
     block: number;
+
+    relics: string[];
+
     drawPile: CardState[];
     hand: CardState[];
     exiledCards: CardState[];
@@ -87,12 +92,22 @@ export type EnemyIntent =
         duration: number;
     };
 
+export type RewardTier =
+    | "common"
+    | "elite"
+    | "boss";
+
+export interface EnemyRewardConfig {
+    gold: number;
+    tier: RewardTier;
+}
+
 export interface EnemyDefinition {
     id: string;
     name: string;
     maxHp: number;
     intents: EnemyIntent[];
-    reward: CombatReward;
+    reward: EnemyRewardConfig;
     lastFight?: boolean;
 }
 
@@ -115,7 +130,7 @@ export interface CombatState {
 
 export interface CombatReward {
     gold: number;
-    cardChoices: string[];
+    relicId?: string;
 }
 
 export interface ShopOffer {
@@ -131,6 +146,7 @@ export interface RunState {
     deck: CardState[];
     baseActions: number;
     relics: string[];
+    availableRelicIds: string[];
     upgrades: string[];
     pendingReward: CombatReward | null;
     map: MapState;
@@ -173,4 +189,14 @@ export type RunResult =
     | "defeat";
 
 export type EventId =
+    | "corrupted-altar"
+    | "masked-merchant"
+    | "whispering-fire"
+    | "ash-mirror"
+    | "captive-wanderer"
+    | "three-chests"
+    | "blood-fountain"
+    | "forgotten-forge"
+    | "book-of-the-dead"
+    | "rift-of-ash"
     | "remove-random-card";

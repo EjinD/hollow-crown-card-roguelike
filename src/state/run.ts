@@ -11,7 +11,10 @@ import {
 } from "../data/deck";
 
 import { enemies } from "../data/enemies";
+import { cards } from "../data/cards";
+import { events } from "../data/events";
 import { startCombat } from "../engine/combat";
+import { createCombatReward } from "../engine/rewards";
 
 import type {
     CombatState,
@@ -19,18 +22,46 @@ import type {
     RunState,
 } from "../types/game";
 
+import type { EventChoice, EventEffect, EventRequirement } from "../types/events";
+
+import type { HubUpgradeState } from "../types/meta";
+
 import { generateMap } from "../data/map";
 
-export function startRun(): RunState {
+export function startRun(
+    availableRelicIds: string[] = [
+        "molten-heart",
+    ],
+    hubUpgrades: HubUpgradeState[] = [],
+): RunState {
     const map = generateMap();
 
+    const maxHpUpgradeLevel =
+        hubUpgrades.find(
+            (upgrade) => upgrade.id === "max-hp",
+        )?.level ?? 0;
+
+    const baseActionsUpgradeLevel =
+        hubUpgrades.find(
+            (upgrade) => upgrade.id === "base-actions",
+        )?.level ?? 0;
+
+    const maxHp =
+        10 + Math.max(0, maxHpUpgradeLevel) * 2;
+
+    const baseActions =
+        BASE_ACTIONS + Math.min(1, Math.max(0, baseActionsUpgradeLevel));
+
     return {
-        hp: 10,
-        maxHp: 10,
+        hp: maxHp,
+        maxHp,
         gold: 0,
         deck: cloneDeck(starterDeck),
-        baseActions: BASE_ACTIONS,
+        baseActions,
         relics: [],
+        availableRelicIds: [
+            ...availableRelicIds,
+        ],
         upgrades: [],
         pendingReward: null,
         map,
@@ -54,49 +85,37 @@ export function syncRunAfterCombat(
         ...run,
         hp: combat.player.hp,
         maxHp: combat.player.maxHp,
-        baseActions: combat.player.baseActions,
+        baseActions:
+            combat.player.baseActions,
     };
 }
 
-export function claimCardReward(
+export function claimRelicReward(
     run: RunState,
-    cardId: string,
 ): RunState {
-    if (!run.pendingReward) {
-        return run;
+    const relicId =
+        run.pendingReward?.relicId;
+
+    if (!relicId) {
+        return {
+            ...run,
+            pendingReward: null,
+        };
     }
 
-    if (
-        !run.pendingReward.cardChoices.includes(
-            cardId,
-        )
-    ) {
-        return run;
-    }
-
-    if (isDeckFull(run)) {
-        return run;
+    if (run.relics.includes(relicId)) {
+        return {
+            ...run,
+            pendingReward: null,
+        };
     }
 
     return {
         ...run,
-        deck: addCardToDeck(
-            run.deck,
-            cardId,
-        ),
-        pendingReward: null,
-    };
-}
-
-export function skipReward(
-    run: RunState,
-): RunState {
-    if (!run.pendingReward) {
-        return run;
-    }
-
-    return {
-        ...run,
+        relics: [
+            ...run.relics,
+            relicId,
+        ],
         pendingReward: null,
     };
 }
@@ -104,7 +123,8 @@ export function skipReward(
 export function startCurrentCombat(
     run: RunState,
 ): CombatState {
-    const currentNode = getCurrentMapNode(run);
+    const currentNode =
+        getCurrentMapNode(run);
 
     if (
         !currentNode ||
@@ -178,9 +198,9 @@ export function buyShopCard(
             (currentOffer, index) =>
                 index === offerIndex
                     ? {
-                        ...currentOffer,
-                        purchased: true,
-                    }
+                          ...currentOffer,
+                          purchased: true,
+                      }
                     : currentOffer,
         );
 
@@ -196,10 +216,10 @@ export function buyShopCard(
                     node.id ===
                     currentNode.id
                         ? {
-                            ...node,
-                            shopOffers:
-                                updatedOffers,
-                        }
+                              ...node,
+                              shopOffers:
+                                  updatedOffers,
+                          }
                         : node,
             ),
         },
@@ -248,10 +268,10 @@ export function healAtShop(
                     node.id ===
                     currentNode.id
                         ? {
-                            ...node,
-                            shopHealPurchased:
-                                true,
-                        }
+                              ...node,
+                              shopHealPurchased:
+                                  true,
+                          }
                         : node,
             ),
         },
@@ -285,6 +305,12 @@ export function completeCombat(
         return run;
     }
 
+    const reward =
+        createCombatReward(
+            enemy.reward,
+            run.availableRelicIds,
+        );
+
     const updatedRun: RunState = {
         ...run,
         hp: combat.player.hp,
@@ -292,9 +318,8 @@ export function completeCombat(
         baseActions:
             combat.player.baseActions,
         gold:
-            run.gold + enemy.reward.gold,
-        pendingReward:
-            enemy.reward,
+            run.gold + reward.gold,
+        pendingReward: reward,
         status: enemy.lastFight
             ? "completed"
             : "active",
@@ -306,51 +331,6 @@ export function completeCombat(
     return completeCurrentMapNode(
         updatedRun,
     );
-}
-
-export function replaceCardInDeck(
-    run: RunState,
-    oldCardId: string,
-    newCardId: string,
-): RunState {
-    if (!run.pendingReward) {
-        return run;
-    }
-
-    if (
-        !run.pendingReward.cardChoices.includes(
-            newCardId,
-        )
-    ) {
-        return run;
-    }
-
-    const cardIndex =
-        run.deck.findIndex(
-            (card) =>
-                card.cardId === oldCardId,
-        );
-
-    if (cardIndex === -1) {
-        return run;
-    }
-
-    const updatedDeck =
-        run.deck.map(
-            (card, index) =>
-                index === cardIndex
-                    ? {
-                        cardId: newCardId,
-                        cooldownRemaining: 0,
-                    }
-                    : card,
-        );
-
-    return {
-        ...run,
-        deck: updatedDeck,
-        pendingReward: null,
-    };
 }
 
 export function isDeckFull(
@@ -449,9 +429,9 @@ export function isCombatNode(
 
 export function triggerCurrentEvent(
     run: RunState,
+    choiceId?: string,
 ): RunState {
-    const currentNode =
-        getCurrentMapNode(run);
+    const currentNode = getCurrentMapNode(run);
 
     if (
         !currentNode ||
@@ -462,51 +442,255 @@ export function triggerCurrentEvent(
         return run;
     }
 
-    const updatedRun =
-        removeRandomCardFromDeck(run);
+    if (currentNode.eventId === "remove-random-card" && !choiceId) {
+        const updatedRun = removeRandomCardFromDeck(run);
+
+        return {
+            ...updatedRun,
+            map: {
+                ...updatedRun.map,
+                nodes: updatedRun.map.nodes.map((node) =>
+                    node.id === currentNode.id
+                        ? { ...node, completed: true }
+                        : node,
+                ),
+            },
+        };
+    }
+
+    const event = events.find(
+        (definition) => definition.id === currentNode.eventId,
+    );
+
+    if (!event || !choiceId) {
+        return run;
+    }
+
+    const choice = event.choices.find(
+        (currentChoice) => currentChoice.id === choiceId,
+    );
+
+    if (!choice || !canUseEventChoice(run, choice)) {
+        return run;
+    }
+
+    const updatedRun = applyEventEffects(run, choice.effects);
 
     return {
         ...updatedRun,
         map: {
             ...updatedRun.map,
-            nodes:
-                updatedRun.map.nodes.map(
-                    (node) =>
-                        node.id ===
-                        currentNode.id
-                            ? {
-                                ...node,
-                                completed:
-                                    true,
-                            }
-                            : node,
-                ),
+            nodes: updatedRun.map.nodes.map((node) =>
+                node.id === currentNode.id
+                    ? {
+                          ...node,
+                          completed: true,
+                      }
+                    : node,
+            ),
         },
+    };
+}
+
+export function canUseEventChoice(
+    run: RunState,
+    choice: EventChoice,
+): boolean {
+    const requirement = choice.requirement;
+
+    if (!requirement) {
+        return true;
+    }
+
+    return meetsEventRequirement(run, requirement);
+}
+
+function meetsEventRequirement(
+    run: RunState,
+    requirement: EventRequirement,
+): boolean {
+    switch (requirement.type) {
+        case "gold":
+            return run.gold >= requirement.amount;
+
+        case "hp":
+            return run.hp >= requirement.amount;
+
+        case "deck-size":
+            return run.deck.length >= requirement.min;
+    }
+}
+
+function applyEventEffects(
+    run: RunState,
+    effects: EventEffect[],
+): RunState {
+    let nextRun = { ...run };
+
+    for (const effect of effects) {
+        switch (effect.type) {
+            case "gain-gold":
+                nextRun = {
+                    ...nextRun,
+                    gold: nextRun.gold + Math.max(0, effect.amount),
+                };
+                break;
+
+            case "lose-gold":
+                nextRun = {
+                    ...nextRun,
+                    gold: Math.max(0, nextRun.gold - effect.amount),
+                };
+                break;
+
+            case "heal":
+                nextRun = {
+                    ...nextRun,
+                    hp: Math.min(
+                        nextRun.maxHp,
+                        nextRun.hp + Math.max(0, effect.amount),
+                    ),
+                };
+                break;
+
+            case "lose-hp":
+                nextRun = {
+                    ...nextRun,
+                    hp: Math.max(1, nextRun.hp - Math.max(0, effect.amount)),
+                };
+                break;
+
+            case "add-card":
+                nextRun = addEventCard(nextRun, effect.cardId);
+                break;
+
+            case "add-random-card":
+                nextRun = addRandomEventCard(nextRun);
+                break;
+
+            case "remove-card":
+                nextRun = removeCardFromDeck(nextRun, effect.cardId);
+                break;
+
+            case "remove-random-card":
+                nextRun = removeRandomCardFromDeck(nextRun);
+                break;
+
+            case "random-relic":
+                nextRun = addRandomEventRelic(nextRun);
+                break;
+        }
+    }
+
+    return nextRun;
+}
+
+function addEventCard(
+    run: RunState,
+    cardId: string,
+): RunState {
+    if (
+        run.deck.length >= MAX_DECK_SIZE ||
+        run.deck.some((card) => card.cardId === cardId) ||
+        !cards.some((card) => card.id === cardId)
+    ) {
+        return run;
+    }
+
+    return {
+        ...run,
+        deck: [
+            ...run.deck,
+            {
+                cardId,
+                cooldownRemaining: 0,
+            },
+        ],
+    };
+}
+
+function addRandomEventCard(
+    run: RunState,
+): RunState {
+    const availableCards = cards.filter(
+        (card) => !run.deck.some((deckCard) => deckCard.cardId === card.id),
+    );
+
+    if (availableCards.length === 0 || run.deck.length >= MAX_DECK_SIZE) {
+        return {
+            ...run,
+            gold: run.gold + 10,
+        };
+    }
+
+    const randomCard =
+        availableCards[Math.floor(Math.random() * availableCards.length)];
+
+    return addEventCard(run, randomCard.id);
+}
+
+function addRandomEventRelic(
+    run: RunState,
+): RunState {
+    const availableRelics = run.availableRelicIds.filter(
+        (relicId) => !run.relics.includes(relicId),
+    );
+
+    if (availableRelics.length === 0) {
+        return {
+            ...run,
+            gold: run.gold + 20,
+        };
+    }
+
+    const relicId =
+        availableRelics[Math.floor(Math.random() * availableRelics.length)];
+
+    return {
+        ...run,
+        relics: [...run.relics, relicId],
     };
 }
 
 export function removeRandomCardFromDeck(
     run: RunState,
 ): RunState {
-    if (
-        run.deck.length <=
-        MIN_DECK_SIZE
-    ) {
+    if (run.deck.length <= MIN_DECK_SIZE) {
         return run;
     }
 
-    const randomIndex =
-        Math.floor(
-            Math.random() *
-                run.deck.length,
-        );
+    const randomIndex = Math.floor(
+        Math.random() * run.deck.length,
+    );
 
     return {
         ...run,
-        deck: run.deck.filter(
-            (_, index) =>
-                index !== randomIndex,
-        ),
+        deck: run.deck.filter((_, index) => index !== randomIndex),
+    };
+}
+
+function removeCardFromDeck(
+    run: RunState,
+    cardId: string,
+): RunState {
+    if (run.deck.length <= MIN_DECK_SIZE) {
+        return run;
+    }
+
+    const index = run.deck.findIndex(
+        (card) => card.cardId === cardId,
+    );
+
+    if (index === -1) {
+        return run;
+    }
+
+    return {
+        ...run,
+        deck: [
+            ...run.deck.slice(0, index),
+            ...run.deck.slice(index + 1),
+        ],
     };
 }
 
@@ -523,10 +707,10 @@ export function completeCurrentMapNode(
                         node.id ===
                         run.map.currentNodeId
                             ? {
-                                ...node,
-                                completed:
-                                    true,
-                            }
+                                  ...node,
+                                  completed:
+                                      true,
+                              }
                             : node,
                 ),
         },

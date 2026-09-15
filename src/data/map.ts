@@ -12,6 +12,19 @@ const BATTLE_ENEMY_POOLS: Record<number, string[]> = {
     4: ["shield-goblin", "war-goblin"],
 };
 
+const EVENT_POOL = [
+    "corrupted-altar",
+    "masked-merchant",
+    "whispering-fire",
+    "ash-mirror",
+    "captive-wanderer",
+    "three-chests",
+    "blood-fountain",
+    "forgotten-forge",
+    "book-of-the-dead",
+    "rift-of-ash",
+] as const;
+
 function randomInt(
     min: number,
     max: number,
@@ -100,9 +113,9 @@ function connectLayers(
     }
 }
 
-function shuffleNodeTypes(
-    types: MapNodeType[],
-): MapNodeType[] {
+function shuffleNodeTypes<T>(
+    types: T[],
+): T[] {
     const shuffled = [...types];
 
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -235,6 +248,11 @@ export function generateMap(): MapState {
 function assignNodeContent(
     nodes: MapNode[],
 ): void {
+    const eventIds = shuffleNodeTypes(
+        [...EVENT_POOL],
+    );
+    let nextEventIndex = 0;
+
     for (const node of nodes) {
         if (node.type === "elite") {
             node.enemyId = "war-goblin";
@@ -245,7 +263,9 @@ function assignNodeContent(
         }
 
         if (node.type === "event") {
-            node.eventId = "remove-random-card";
+            node.eventId =
+                eventIds[nextEventIndex % eventIds.length];
+            nextEventIndex += 1;
         }
 
         if (node.type === "shop") {

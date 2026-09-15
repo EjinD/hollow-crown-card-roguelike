@@ -5,6 +5,7 @@ import {
 } from "react";
 
 import type {
+    CardState,
     CombatState,
     StatusEffect,
 } from "../types/game";
@@ -21,6 +22,7 @@ import battlefieldImage from "../assets/backgrounds/battlefield.png";
 
 import CombatCharacter, {
     type CharacterEffect,
+    type EnemyActionEffect,
 } from "./CombatCharacter";
 
 import CombatHeader from "./CombatHeader";
@@ -29,6 +31,7 @@ import CombatTable from "./CombatTable";
 import CombatHealthBar from "./CombatHealthBar";
 import PlayedCardOverlay from "./PlayedCardOverlay";
 import EnemyIntent from "./EnemyIntent";
+import InventoryScreen from "./InventoryScreen";
 
 import CombatFeedback, {
     type CombatFeedbackItem,
@@ -37,8 +40,13 @@ import CombatFeedback, {
 interface CombatScreenProps {
     combat: CombatState;
     gold: number;
+    deck: CardState[];
+    relics: string[];
+    upgrades: string[];
+    maxDeckSize: number;
     isEnemyTurnAnimating: boolean;
     isEnemyAttacking: boolean;
+    enemyAction: EnemyActionEffect;
     onPlayCard: (cardId: string) => void;
     onEndTurn: () => void;
 }
@@ -89,8 +97,13 @@ function getStatusCounts(
 export default function CombatScreen({
     combat,
     gold,
+    deck,
+    relics,
+    upgrades,
+    maxDeckSize,
     isEnemyTurnAnimating,
     isEnemyAttacking,
+    enemyAction,
     onPlayCard,
     onEndTurn,
 }: CombatScreenProps) {
@@ -141,6 +154,11 @@ export default function CombatScreen({
             null,
         );
 
+    const [
+        showInventory,
+        setShowInventory,
+    ] = useState(false);
+
     const isPlayerTurn =
         combat.phase ===
             "player-turn" &&
@@ -178,14 +196,9 @@ export default function CombatScreen({
         enemyDefinition?.maxHp ??
         combat.enemy.hp;
 
-    const enemyAction =
-        isEnemyAttacking
-            ? combat.enemy.intent.type
-            : null;
-
     /*
      * ============================
-     * COMBAT FEEDBACK
+     * COMBAT STATE FEEDBACK
      * ============================
      */
 
@@ -402,7 +415,7 @@ export default function CombatScreen({
         }
 
         /*
-         * CHARACTER FX
+         * CHARACTER EFFECT
          */
 
         if (
@@ -505,7 +518,7 @@ export default function CombatScreen({
 
     /*
      * ============================
-     * PLAY CARD
+     * CARD PLAY
      * ============================
      */
 
@@ -572,6 +585,11 @@ export default function CombatScreen({
             <div className="relative min-h-screen w-full overflow-hidden">
                 <CombatHeader
                     gold={gold}
+                    onOpenInventory={() =>
+                        setShowInventory(
+                            true,
+                        )
+                    }
                 />
 
                 {/* BACKGROUND */}
@@ -590,7 +608,7 @@ export default function CombatScreen({
 
                 {/* TOP HUD */}
                 <div className="relative z-20 flex items-start justify-between px-8 pt-5">
-                    {/* PLAYER HUD */}
+                    {/* PLAYER */}
                     <div className="w-[300px]">
                         <div className="border border-stone-700/80 bg-[#100c0a]/90 px-4 py-3 shadow-[0_6px_25px_rgba(0,0,0,0.45)]">
                             <div className="flex items-center justify-between">
@@ -647,42 +665,24 @@ export default function CombatScreen({
                                     variant="player"
                                 />
                             </div>
-
-                            <StatusEffects
-                                effects={
-                                    combat
-                                        .player
-                                        .statusEffects
-                                }
-                            />
                         </div>
-                    </div>
 
-                    {/* TURN */}
-                    <div className="pt-1 text-center">
-                        <span className="text-[10px] uppercase tracking-[0.35em] text-stone-500">
-                            Turn
-                        </span>
-
-                        <p className="mt-1 font-serif text-3xl font-bold text-stone-200">
-                            {
-                                combat.turn
+                        <StatusEffects
+                            effects={
+                                combat
+                                    .player
+                                    .statusEffects
                             }
-                        </p>
+                        />
                     </div>
 
-                    {/* ENEMY HUD */}
+                    {/* ENEMY */}
                     <div className="w-[300px]">
                         <div className="border border-stone-700/80 bg-[#100c0a]/90 px-4 py-3 shadow-[0_6px_25px_rgba(0,0,0,0.45)]">
                             <div className="flex items-center justify-between">
-                                <div className="min-w-0">
-                                    <p className="truncate text-sm font-serif font-bold uppercase tracking-wider text-stone-200">
-                                        {enemyDefinition?.name ??
-                                            combat
-                                                .enemy
-                                                .definitionId}
-                                    </p>
-                                </div>
+                                <span className="text-[10px] uppercase tracking-[0.3em] text-stone-500">
+                                    Enemy
+                                </span>
 
                                 <div className="flex items-center gap-3">
                                     {combat
@@ -762,7 +762,7 @@ export default function CombatScreen({
                             />
                         )}
 
-                        {/* COMBAT FEEDBACK */}
+                        {/* FEEDBACK */}
                         <CombatFeedback
                             feedback={
                                 feedback
@@ -774,7 +774,7 @@ export default function CombatScreen({
                             ref={
                                 playerTargetRef
                             }
-                            className="absolute bottom-0 left-[15%] z-10"
+                            className="absolute bottom-[10%] left-[15%] z-10"
                         >
                             <CombatCharacter
                                 image={
@@ -801,7 +801,7 @@ export default function CombatScreen({
                             ref={
                                 enemyTargetRef
                             }
-                            className="absolute bottom-0 right-[13%] z-10"
+                            className="absolute bottom-[10%] right-[13%] z-10"
                         >
                             {enemyImage && (
                                 <CombatCharacter
@@ -810,7 +810,9 @@ export default function CombatScreen({
                                     }
                                     side="enemy"
                                     enemyAction={
-                                        enemyAction
+                                        isEnemyAttacking
+                                            ? enemyAction
+                                            : null
                                     }
                                     hit={
                                         characterEffects.enemy ===
@@ -828,7 +830,7 @@ export default function CombatScreen({
                             )}
                         </div>
 
-                        {/* ENEMY INTENT */}
+                        {/* INTENT */}
                         <div className="absolute right-[3%] top-[32%] z-20">
                             <EnemyIntent
                                 intent={
@@ -879,6 +881,22 @@ export default function CombatScreen({
                         onEndTurn
                     }
                 />
+
+                {showInventory && (
+                    <InventoryScreen
+                        deck={deck}
+                        relics={relics}
+                        upgrades={upgrades}
+                        maxDeckSize={
+                            maxDeckSize
+                        }
+                        onClose={() =>
+                            setShowInventory(
+                                false,
+                            )
+                        }
+                    />
+                )}
             </div>
         </main>
     );

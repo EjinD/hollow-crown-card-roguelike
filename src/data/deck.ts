@@ -51,6 +51,10 @@ export function addCardToDeck(
         return [...deck];
     }
 
+    if (deck.some((card) => card.cardId === cardId)) {
+        return [...deck];
+    }
+
     if (!cards.some((card) => card.id === cardId)) {
         return [...deck];
     }
