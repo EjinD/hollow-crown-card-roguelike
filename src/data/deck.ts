@@ -43,6 +43,28 @@ export const starterDeck: CardState[] = [
         cooldownRemaining: 0,
     },
 ];
+
+export function createDeckFromIds(cardIds: string[]): CardState[] {
+    const uniqueIds: string[] = [];
+
+    for (const cardId of cardIds) {
+        if (uniqueIds.includes(cardId)) {
+            continue;
+        }
+
+        if (!cards.some((card) => card.id === cardId)) {
+            continue;
+        }
+
+        uniqueIds.push(cardId);
+    }
+
+    return uniqueIds.map((cardId) => ({
+        cardId,
+        cooldownRemaining: 0,
+    }));
+}
+
 export function addCardToDeck(
     deck: CardState[],
     cardId: string,

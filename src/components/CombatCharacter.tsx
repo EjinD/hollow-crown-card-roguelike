@@ -8,7 +8,11 @@ export type CharacterEffect =
 
 export type EnemyActionEffect =
     | "attack"
+    | "attack-debuff"
+    | "attack-buff"
+    | "drain"
     | "block"
+    | "block-buff"
     | "heal"
     | "buff"
     | "debuff"
@@ -131,9 +135,13 @@ function getEnemyActionAnimation(
 ): string {
     switch (action) {
         case "attack":
+        case "attack-debuff":
+        case "attack-buff":
+        case "drain":
             return "animate-[enemyAttack_520ms_cubic-bezier(0.22,1,0.36,1)]";
 
         case "block":
+        case "block-buff":
             return "animate-[enemyBlock_520ms_ease-out]";
 
         case "heal":

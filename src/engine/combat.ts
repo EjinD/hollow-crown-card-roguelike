@@ -13,6 +13,7 @@ import {
     cloneDeck,
     drawCards,
     drawCardsWithRecycle,
+    shuffleDeck,
 } from "../data/deck";
 
 import { MAX_HAND_SIZE } from "../consts/game";
@@ -70,7 +71,7 @@ export function startCombat(
         ) ?? enemies[0];
 
     const initialDeck =
-        cloneDeck(run.deck);
+        shuffleDeck(cloneDeck(run.deck));
 
     const {
         drawnCards,
@@ -114,9 +115,42 @@ export function startCombat(
             strength: 0,
             intentIndex: 0,
             intent:
+                enemy.phases?.[0]?.intents[0] ??
                 enemy.intents[0],
             statusEffects: [],
+            ...(enemy.phases
+                ? { bossPhase: 0 }
+                : {}),
         },
+    };
+}
+
+function dealPiercingDamage(
+    enemy: CombatState["enemy"],
+    damage: number,
+): CombatState["enemy"] {
+    return {
+        ...enemy,
+        hp: Math.max(0, enemy.hp - damage),
+    };
+}
+
+function hasEnemyBurn(
+    enemy: CombatState["enemy"],
+): boolean {
+    return enemy.statusEffects.some(
+        (effect) => effect.type === "burn" && effect.amount > 0,
+    );
+}
+
+function cleansePlayerWeak(
+    player: CombatState["player"],
+): CombatState["player"] {
+    return {
+        ...player,
+        statusEffects: player.statusEffects.filter(
+            (effect) => effect.type !== "weak",
+        ),
     };
 }
 
@@ -283,6 +317,88 @@ export function applyCardEffects(
             };
         }
 
+        if (effect.type === "piercing-damage") {
+            const damage = modifyDamage(
+                effect.amount,
+                updatedState.player.relics,
+                {
+                    source: "card",
+                    target: "enemy",
+                    damageType: "fire",
+                },
+            );
+
+            updatedState = {
+                ...updatedState,
+                enemy: dealPiercingDamage(updatedState.enemy, damage),
+            };
+        }
+
+        if (effect.type === "shatter") {
+            const damage = modifyDamage(
+                effect.amount,
+                updatedState.player.relics,
+                {
+                    source: "card",
+                    target: "enemy",
+                    damageType: "fire",
+                },
+            );
+
+            updatedState = {
+                ...updatedState,
+                enemy: {
+                    ...dealPiercingDamage(updatedState.enemy, damage),
+                    block: 0,
+                },
+            };
+        }
+
+        if (effect.type === "damage-if-burn") {
+            const amount = hasEnemyBurn(updatedState.enemy)
+                ? effect.amount + effect.bonusDamage
+                : effect.amount;
+
+            const damage = modifyDamage(
+                amount,
+                updatedState.player.relics,
+                {
+                    source: "card",
+                    target: "enemy",
+                    damageType: "fire",
+                },
+            );
+
+            updatedState = {
+                ...updatedState,
+                enemy: damageEnemy(updatedState.enemy, damage),
+            };
+        }
+
+        if (effect.type === "damage-if-player-weak") {
+            const playerIsWeak = updatedState.player.statusEffects.some(
+                (status) => status.type === "weak" && status.amount > 0,
+            );
+            const amount = playerIsWeak
+                ? effect.amount + effect.bonusDamage
+                : effect.amount;
+
+            const damage = modifyDamage(
+                amount,
+                updatedState.player.relics,
+                {
+                    source: "card",
+                    target: "enemy",
+                    damageType: "fire",
+                },
+            );
+
+            updatedState = {
+                ...updatedState,
+                enemy: damageEnemy(updatedState.enemy, damage),
+            };
+        }
+
         if (
             effect.type ===
             "burn"
@@ -354,6 +470,41 @@ export function applyCardEffects(
             };
         }
 
+        if (effect.type === "reduce-strength") {
+            const actualReduction = Math.min(
+                effect.amount,
+                updatedState.enemy.strength,
+            );
+
+            updatedState = {
+                ...updatedState,
+                enemy: {
+                    ...updatedState.enemy,
+                    strength:
+                        updatedState.enemy.strength -
+                        actualReduction,
+                    statusEffects:
+                        actualReduction > 0
+                            ? [
+                                  ...updatedState.enemy.statusEffects,
+                                  {
+                                      type: "strength-down",
+                                      amount: actualReduction,
+                                      duration: 1,
+                                  },
+                              ]
+                            : updatedState.enemy.statusEffects,
+                },
+            };
+        }
+
+        if (effect.type === "cleanse-weak") {
+            updatedState = {
+                ...updatedState,
+                player: cleansePlayerWeak(updatedState.player),
+            };
+        }
+
         if (
             effect.type ===
             "gain-action"
@@ -419,6 +570,26 @@ export function applyCardEffects(
             };
         }
 
+        if (effect.type === "recover-exiled") {
+            updatedState = {
+                ...updatedState,
+                player: recoverExiledCards(
+                    updatedState.player,
+                    effect.amount,
+                ),
+            };
+        }
+
+        if (effect.type === "recover-all-exiled") {
+            updatedState = {
+                ...updatedState,
+                player: recoverExiledCards(
+                    updatedState.player,
+                    updatedState.player.exiledCards.length,
+                ),
+            };
+        }
+
         if (
             effect.type ===
             "heal"
@@ -448,66 +619,69 @@ export function applyCardEffects(
 export function processExiledCards(
     player: PlayerState,
 ): PlayerState {
-    const updatedExiledCards =
-        player.exiledCards.map(
-            (cardState) => ({
-                ...cardState,
-                cooldownRemaining:
-                    Math.max(
-                        0,
-                        cardState.cooldownRemaining -
-                            1,
-                    ),
-            }),
-        );
-
-    const returningCards =
-        updatedExiledCards.filter(
-            (cardState) =>
-                cardState.cooldownRemaining ===
+    const updatedExiledCards = player.exiledCards.map(
+        (cardState) => ({
+            ...cardState,
+            cooldownRemaining: Math.max(
                 0,
-        );
-
-    const remainingExiledCards =
-        updatedExiledCards.filter(
-            (cardState) =>
-                cardState.cooldownRemaining >
-                0,
-        );
-
-    const availableSlots =
-        MAX_HAND_SIZE -
-        player.hand.length;
-
-    const cardsToHand =
-        returningCards.slice(
-            0,
-            Math.max(
-                0,
-                availableSlots,
+                cardState.cooldownRemaining - 1,
             ),
-        );
+        }),
+    );
 
-    const cardsToExhaust =
-        returningCards.slice(
-            Math.max(
-                0,
-                availableSlots,
-            ),
-        );
+    const returningCards = updatedExiledCards.filter(
+        (cardState) => cardState.cooldownRemaining === 0,
+    );
+
+    const remainingExiledCards = updatedExiledCards.filter(
+        (cardState) => cardState.cooldownRemaining > 0,
+    );
+
+    // A cooldown card re-enters the draw cycle, not the hand.
+    // This prevents cooldowns from inflating the hand and avoids
+    // permanently losing a card just because the hand is full.
+    const recoveredCards = returningCards.map((cardState) => ({
+        ...cardState,
+        cooldownRemaining: 0,
+    }));
 
     return {
         ...player,
-        hand: [
-            ...player.hand,
-            ...cardsToHand,
+        drawPile: [
+            ...player.drawPile,
+            ...recoveredCards,
         ],
-        exiledCards:
-            remainingExiledCards,
-        exhaustedCards: [
-            ...player.exhaustedCards,
-            ...cardsToExhaust,
+        exiledCards: remainingExiledCards,
+    };
+}
+
+function recoverExiledCards(
+    player: PlayerState,
+    amount: number,
+): PlayerState {
+    if (amount <= 0 || player.exiledCards.length === 0) {
+        return player;
+    }
+
+    const recoveredCards = player.exiledCards
+        .slice(0, amount)
+        .map((cardState) => ({
+            ...cardState,
+            cooldownRemaining: 0,
+        }));
+
+
+    const remainingExiledCards = player.exiledCards.filter(
+        (_, index) => index >= recoveredCards.length,
+    );
+
+    return {
+        ...player,
+        drawPile: [
+            ...player.drawPile,
+            ...recoveredCards,
         ],
+        exiledCards: remainingExiledCards,
     };
 }
 
@@ -543,6 +717,22 @@ export function moveCardAfterPlay(
                 cardId,
         );
 
+    const definition = getCard(cardId);
+
+    if (definition?.exhaust) {
+        return {
+            ...player,
+            hand: remainingHand,
+            exhaustedCards: [
+                ...player.exhaustedCards,
+                {
+                    cardId,
+                    cooldownRemaining: 0,
+                },
+            ],
+        };
+    }
+
     if (cooldown > 0) {
         return {
             ...player,
@@ -551,8 +741,7 @@ export function moveCardAfterPlay(
                 ...player.exiledCards,
                 {
                     cardId,
-                    cooldownRemaining:
-                        cooldown,
+                    cooldownRemaining: cooldown,
                 },
             ],
         };
@@ -705,19 +894,99 @@ export function executeEnemyIntent(
         return state;
     }
 
-    const nextIntentIndex =
-        (state.enemy.intentIndex +
-            1) %
-        enemyDefinition
-            .intents.length;
+    const bossPhaseIndex =
+        enemyDefinition.phases
+            ? enemyDefinition.phases.reduce(
+                  (activeIndex, phase, index) => {
+                      const hpRatio =
+                          state.enemy.hp /
+                          enemyDefinition.maxHp;
 
-    const nextIntent =
-        enemyDefinition.intents[
-            nextIntentIndex
+                      return hpRatio <= phase.threshold
+                          ? index
+                          : activeIndex;
+                  },
+                  0,
+              )
+            : state.enemy.bossPhase ?? null;
+
+    const activePhase =
+        enemyDefinition.phases?.[
+            bossPhaseIndex ?? 0
         ];
 
-    const { intent } =
-        state.enemy;
+    const phaseChanged =
+        activePhase &&
+        bossPhaseIndex !==
+            (state.enemy.bossPhase ?? 0);
+
+    const phaseIntents =
+        activePhase?.intents ??
+        enemyDefinition.intents;
+
+    const effectiveIntentIndex =
+        phaseChanged
+            ? 0
+            : Math.min(
+                  state.enemy.intentIndex,
+                  Math.max(0, phaseIntents.length - 1),
+              );
+
+    const intent =
+        phaseIntents[effectiveIntentIndex] ??
+        phaseIntents[0];
+
+    // Burn resolves before the enemy performs its intent.
+    const burnDamage = state.enemy.statusEffects
+        .filter((effect) => effect.type === "burn")
+        .reduce((total, effect) => total + effect.amount, 0);
+
+    const enemyHpAfterBurn = Math.max(
+        0,
+        state.enemy.hp - burnDamage,
+    );
+
+    const enemyStatusAfterBurn = state.enemy.statusEffects
+        .map((effect) =>
+            effect.type === "burn"
+                ? { ...effect, duration: effect.duration - 1 }
+                : effect,
+        )
+        .filter((effect) => effect.duration > 0);
+
+    if (enemyHpAfterBurn === 0) {
+        return {
+            ...state,
+            enemy: {
+                ...state.enemy,
+                hp: 0,
+                statusEffects: enemyStatusAfterBurn,
+            },
+            phase: "victory",
+        };
+    }
+
+    const enemyAfterBurn = {
+        ...state.enemy,
+        hp: enemyHpAfterBurn,
+        statusEffects: enemyStatusAfterBurn,
+    };
+
+    const nextIntentIndex =
+        (effectiveIntentIndex + 1) %
+        phaseIntents.length;
+
+    const nextIntent =
+        phaseIntents[nextIntentIndex];
+
+    const normalizedEnemy = {
+        ...enemyAfterBurn,
+        bossPhase:
+            bossPhaseIndex ??
+            enemyAfterBurn.bossPhase,
+        intentIndex: effectiveIntentIndex,
+        intent,
+    };
 
     const playerAfterStatusTick = {
         ...state.player,
@@ -727,6 +996,129 @@ export function executeEnemyIntent(
                     .statusEffects,
             ),
     };
+
+    if (intent.type === "attack-debuff") {
+        const updatedPlayer = damagePlayer(
+            playerAfterStatusTick,
+            intent.damage + enemyAfterBurn.strength,
+        );
+
+        if (updatedPlayer.hp === 0) {
+            return {
+                ...state,
+                player: updatedPlayer,
+                enemy: {
+                    ...normalizedEnemy,
+                    intentIndex: nextIntentIndex,
+                    intent: nextIntent,
+                },
+                phase: "defeat",
+            };
+        }
+
+        return {
+            ...state,
+            player: {
+                ...updatedPlayer,
+                statusEffects: [
+                    ...updatedPlayer.statusEffects,
+                    {
+                        type: "weak",
+                        amount: intent.amount,
+                        duration: intent.duration,
+                    },
+                ],
+            },
+            enemy: {
+                ...normalizedEnemy,
+                intentIndex: nextIntentIndex,
+                intent: nextIntent,
+            },
+            phase: "end-turn",
+        };
+    }
+
+    if (intent.type === "attack-buff") {
+        const updatedPlayer = damagePlayer(
+            playerAfterStatusTick,
+            intent.damage + enemyAfterBurn.strength,
+        );
+
+        if (updatedPlayer.hp === 0) {
+            return {
+                ...state,
+                player: updatedPlayer,
+                enemy: {
+                    ...normalizedEnemy,
+                    intentIndex: nextIntentIndex,
+                    intent: nextIntent,
+                },
+                phase: "defeat",
+            };
+        }
+
+        return {
+            ...state,
+            player: updatedPlayer,
+            enemy: {
+                ...normalizedEnemy,
+                strength: enemyAfterBurn.strength + intent.amount,
+                intentIndex: nextIntentIndex,
+                intent: nextIntent,
+            },
+            phase: "end-turn",
+        };
+    }
+
+    if (intent.type === "drain") {
+        const updatedPlayer = damagePlayer(
+            playerAfterStatusTick,
+            intent.damage + enemyAfterBurn.strength,
+        );
+
+        if (updatedPlayer.hp === 0) {
+            return {
+                ...state,
+                player: updatedPlayer,
+                enemy: {
+                    ...normalizedEnemy,
+                    intentIndex: nextIntentIndex,
+                    intent: nextIntent,
+                },
+                phase: "defeat",
+            };
+        }
+
+        return {
+            ...state,
+            player: updatedPlayer,
+            enemy: {
+                ...normalizedEnemy,
+                hp: Math.min(
+                    enemyDefinition.maxHp,
+                    enemyAfterBurn.hp + intent.heal,
+                ),
+                intentIndex: nextIntentIndex,
+                intent: nextIntent,
+            },
+            phase: "end-turn",
+        };
+    }
+
+    if (intent.type === "block-buff") {
+        return {
+            ...state,
+            player: playerAfterStatusTick,
+            enemy: {
+                ...normalizedEnemy,
+                block: enemyAfterBurn.block + intent.block,
+                strength: enemyAfterBurn.strength + intent.strength,
+                intentIndex: nextIntentIndex,
+                intent: nextIntent,
+            },
+            phase: "end-turn",
+        };
+    }
 
     if (
         intent.type ===
@@ -749,7 +1141,7 @@ export function executeEnemyIntent(
                 player:
                     updatedPlayer,
                 enemy: {
-                    ...state.enemy,
+                    ...enemyAfterBurn,
                     intentIndex:
                         nextIntentIndex,
                     intent:
@@ -765,7 +1157,7 @@ export function executeEnemyIntent(
             player:
                 updatedPlayer,
             enemy: {
-                ...state.enemy,
+                ...enemyAfterBurn,
                 intentIndex:
                     nextIntentIndex,
                 intent:
@@ -782,7 +1174,7 @@ export function executeEnemyIntent(
     ) {
         const updatedEnemy =
             addEnemyBlock(
-                state.enemy,
+                enemyAfterBurn,
                 intent.amount,
             );
 
@@ -808,7 +1200,7 @@ export function executeEnemyIntent(
     ) {
         const updatedEnemy =
             healEnemy(
-                state.enemy,
+                enemyAfterBurn,
                 intent.amount,
                 enemyDefinition
                     .maxHp,
@@ -839,9 +1231,9 @@ export function executeEnemyIntent(
             player:
                 playerAfterStatusTick,
             enemy: {
-                ...state.enemy,
+                ...normalizedEnemy,
                 strength:
-                    state.enemy
+                    enemyAfterBurn
                         .strength +
                     intent.amount,
                 intentIndex:
@@ -876,7 +1268,7 @@ export function executeEnemyIntent(
                 ],
             },
             enemy: {
-                ...state.enemy,
+                ...enemyAfterBurn,
                 intentIndex:
                     nextIntentIndex,
                 intent:
@@ -900,68 +1292,29 @@ export function processEndTurn(
         return state;
     }
 
-    const burnDamage =
-        state.enemy.statusEffects
-            .filter(
-                (effect) =>
-                    effect.type ===
-                    "burn",
-            )
-            .reduce(
-                (total, effect) =>
-                    total +
-                    effect.amount,
-                0,
-            );
-
-    const newEnemyHp =
-        Math.max(
-            0,
-            state.enemy.hp -
-                burnDamage,
-        );
-
-    if (newEnemyHp === 0) {
-        return {
-            ...state,
-            enemy: {
-                ...state.enemy,
-                hp: 0,
-            },
-            phase:
-                "victory",
-        };
-    }
-
     const updatedEnemyStatusEffects =
         state.enemy.statusEffects
-            .map((effect) => ({
-                ...effect,
-                duration:
-                    effect.duration -
-                    1,
-            }))
+            .map((effect) =>
+                effect.type === "burn"
+                    ? effect
+                    : {
+                          ...effect,
+                          duration: effect.duration - 1,
+                      },
+            )
             .filter(
-                (effect) =>
-                    effect.duration > 0,
+                (effect) => effect.duration > 0,
             );
 
     return {
         ...state,
-        turn:
-            state.turn + 1,
-        player:
-            startPlayerTurn(
-                state.player,
-            ),
+        turn: state.turn + 1,
+        player: startPlayerTurn(state.player),
         enemy: {
             ...state.enemy,
-            hp: newEnemyHp,
-            statusEffects:
-                updatedEnemyStatusEffects,
+            statusEffects: updatedEnemyStatusEffects,
         },
-        phase:
-            "player-turn",
+        phase: "player-turn",
     };
 }
 

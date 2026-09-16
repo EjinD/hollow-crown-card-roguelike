@@ -1,16 +1,16 @@
 import type {
+    CardState,
     MapNode,
     MapNodeType,
     MapState,
-    ShopOffer,
 } from "../types/game";
-
-const BATTLE_ENEMY_POOLS: Record<number, string[]> = {
-    1: ["goblin"],
-    2: ["goblin", "shield-goblin"],
-    3: ["shield-goblin", "war-goblin"],
-    4: ["shield-goblin", "war-goblin"],
-};
+import {
+    createShopCardOffers,
+    createShopRelicOffers,
+    SHOP_HEAL_PRICE,
+    SHOP_REMOVE_CARD_PRICE,
+} from "./shop";
+import type { DungeonDefinition } from "./dungeons";
 
 const EVENT_POOL = [
     "corrupted-altar",
@@ -25,44 +25,50 @@ const EVENT_POOL = [
     "rift-of-ash",
 ] as const;
 
-function randomInt(
-    min: number,
-    max: number,
-): number {
-    return Math.floor(
-        Math.random() * (max - min + 1),
-    ) + min;
+const ELITE_ENEMY_POOL = [
+    "war-goblin",
+    "demon",
+    "dark-knight",
+    "ember-witch",
+] as const;
+
+const BATTLE_ENEMY_POOLS: Record<number, string[]> = {
+    1: ["goblin"],
+    2: ["goblin", "shield-goblin", "wolf"],
+    3: ["shield-goblin", "wolf", "spider", "cultist"],
+    4: ["spider", "cultist", "knight", "mage"],
+    5: ["wolf", "spider", "cultist", "knight", "mage"],
+};
+
+function getRandomEnemyId(enemyIds: string[]): string {
+    return enemyIds[
+        Math.floor(Math.random() * enemyIds.length)
+    ];
 }
 
-function getRandomEnemyId(
-    enemyIds: string[],
-): string {
-    const randomIndex = Math.floor(
-        Math.random() * enemyIds.length,
-    );
+function shuffle<T>(items: T[]): T[] {
+    const result = [...items];
 
-    return enemyIds[randomIndex];
-}
+    for (let index = result.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(
+            Math.random() * (index + 1),
+        );
 
-function assignBattleEnemies(
-    layer: MapNode[],
-    enemyIds: string[],
-): void {
-    for (const node of layer) {
-        if (node.type !== "battle") {
-            continue;
-        }
-
-        node.enemyId = getRandomEnemyId(enemyIds);
+        [result[index], result[randomIndex]] = [
+            result[randomIndex],
+            result[index],
+        ];
     }
+
+    return result;
 }
 
 function createLayer(
-    layerIndex: number,
+    floor: number,
     types: MapNodeType[],
 ): MapNode[] {
     return types.map((type, index) => ({
-        id: `layer-${layerIndex}-node-${index}`,
+        id: `floor-${floor}-node-${index}`,
         type,
         nextNodeIds: [],
         completed: false,
@@ -73,219 +79,263 @@ function connectLayers(
     currentLayer: MapNode[],
     nextLayer: MapNode[],
 ): void {
-    if (
-        currentLayer.length === 0 ||
-        nextLayer.length === 0
-    ) {
+    if (!currentLayer.length || !nextLayer.length) {
         return;
     }
 
-    currentLayer.forEach(
-        (node, index) => {
-            const nextNode =
-                nextLayer[index % nextLayer.length];
-
-            node.nextNodeIds = [nextNode.id];
-        },
-    );
-
-    for (const node of currentLayer) {
-        if (nextLayer.length <= 1) {
-            continue;
-        }
-
-        const additionalIndex = Math.floor(
-            Math.random() * nextLayer.length,
-        );
-
-        const additionalNode =
-            nextLayer[additionalIndex];
-
-        if (
-            !node.nextNodeIds.includes(
-                additionalNode.id,
-            )
-        ) {
-            node.nextNodeIds.push(
-                additionalNode.id,
+    // First guarantee that every node on the current floor has a way forward.
+    // This is especially important when the next floor has a single node
+    // (for example the final Boss): every possible route must be able to reach it.
+    currentLayer.forEach((node, index) => {
+        const nextIndex =
+            Math.floor(
+                (index * nextLayer.length) / currentLayer.length,
             );
+        const nextNode =
+            nextLayer[Math.min(nextIndex, nextLayer.length - 1)];
+
+        if (!node.nextNodeIds.includes(nextNode.id)) {
+            node.nextNodeIds.push(nextNode.id);
         }
-    }
-}
+    });
 
-function shuffleNodeTypes<T>(
-    types: T[],
-): T[] {
-    const shuffled = [...types];
+    // Then guarantee that every node on the next floor has an incoming path.
+    nextLayer.forEach((nextNode, index) => {
+        const sourceIndex =
+            Math.floor(
+                (index * currentLayer.length) / nextLayer.length,
+            );
+        const source =
+            currentLayer[Math.min(sourceIndex, currentLayer.length - 1)];
 
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(
-            Math.random() * (i + 1),
+        if (!source.nextNodeIds.includes(nextNode.id)) {
+            source.nextNodeIds.push(nextNode.id);
+        }
+    });
+
+    // Add a few optional cross-links so the map feels branched instead of
+    // looking like a rigid grid, while keeping the guaranteed routes above.
+    currentLayer.forEach((node) => {
+        if (nextLayer.length <= 1) {
+            return;
+        }
+
+        const candidates = nextLayer.filter(
+            (candidate) => !node.nextNodeIds.includes(candidate.id),
         );
 
-        [shuffled[i], shuffled[j]] = [
-            shuffled[j],
-            shuffled[i],
-        ];
+        if (!candidates.length || Math.random() > 0.45) {
+            return;
+        }
+
+        const candidate =
+            candidates[Math.floor(Math.random() * candidates.length)];
+
+        node.nextNodeIds.push(candidate.id);
+    });
+}
+
+function getBattlePoolForFloor(
+    floor: number,
+    dungeon: DungeonDefinition,
+): string[] {
+    const configuredPool = dungeon.battlePools?.find(
+        (entry) => floor <= entry.throughFloor,
+    );
+
+    if (configuredPool) {
+        return configuredPool.enemyIds;
     }
 
-    return shuffled;
+    if (floor <= 2) {
+        return BATTLE_ENEMY_POOLS[1];
+    }
+
+    if (floor <= 4) {
+        return BATTLE_ENEMY_POOLS[2];
+    }
+
+    if (floor <= 6) {
+        return BATTLE_ENEMY_POOLS[3];
+    }
+
+    if (floor <= 10) {
+        return BATTLE_ENEMY_POOLS[4];
+    }
+
+    return BATTLE_ENEMY_POOLS[5];
 }
 
-function createShopOffers(): ShopOffer[] {
-    return [
-        {
-            cardId: "fireball",
-            price: 5,
-            purchased: false,
-        },
-        {
-            cardId: "flame-burst",
-            price: 8,
-            purchased: false,
-        },
-        {
-            cardId: "ember-strike",
-            price: 10,
-            purchased: false,
-        },
-    ];
+function getStandardFloorTypes(floor: number): MapNodeType[] {
+    switch (floor) {
+        case 2:
+            return ["battle", "battle", "event"];
+        case 3:
+            return ["battle", "event", "shop"];
+        case 4:
+            return ["battle", "event", "rest"];
+        case 5:
+            return ["elite", "battle", "event"];
+        case 6:
+            return ["battle", "battle", "event"];
+        case 7:
+            return ["battle", "shop", "event"];
+        case 8:
+            return ["battle", "rest", "event"];
+        case 9:
+            return ["battle", "battle", "shop"];
+        case 10:
+            return ["elite", "battle", "event"];
+        case 11:
+            return ["battle", "rest", "event"];
+        case 12:
+            return ["battle", "event", "shop"];
+        case 13:
+            return ["battle", "battle", "rest"];
+        case 14:
+            return ["elite", "battle", "event"];
+        case 15:
+            return ["rest", "battle", "shop"];
+        default:
+            return ["battle", "battle", "event"];
+    }
 }
 
-export function generateMap(): MapState {
-    const layer1 = createLayer(1, ["battle"]);
+function assignBattleEnemies(
+    nodes: MapNode[],
+    floor: number,
+    dungeon: DungeonDefinition,
+): void {
+    const pool = getBattlePoolForFloor(floor, dungeon);
 
-    const layer2Count = randomInt(2, 3);
-    const layer3Count = randomInt(2, 3);
-    const layer4Count = randomInt(2, 3);
-
-    const layer2Types: MapNodeType[] = [
-        "battle",
-        "event",
-        "shop",
-    ];
-
-    const layer3Types: MapNodeType[] = [
-        "battle",
-        "event",
-        "elite",
-    ];
-
-    const layer4Types: MapNodeType[] = [
-        "battle",
-        "elite",
-    ];
-
-    const layer2 = createLayer(
-        2,
-        shuffleNodeTypes(layer2Types).slice(
-            0,
-            layer2Count,
-        ),
-    );
-
-    const layer3 = createLayer(
-        3,
-        shuffleNodeTypes(layer3Types).slice(
-            0,
-            layer3Count,
-        ),
-    );
-
-    const layer4 = createLayer(
-        4,
-        shuffleNodeTypes(layer4Types).slice(
-            0,
-            layer4Count,
-        ),
-    );
-
-    const layer5 = createLayer(5, [
-        "boss",
-    ]);
-
-    assignBattleEnemies(
-        layer1,
-        BATTLE_ENEMY_POOLS[1],
-    );
-
-    assignBattleEnemies(
-        layer2,
-        BATTLE_ENEMY_POOLS[2],
-    );
-
-    assignBattleEnemies(
-        layer3,
-        BATTLE_ENEMY_POOLS[3],
-    );
-
-    assignBattleEnemies(
-        layer4,
-        BATTLE_ENEMY_POOLS[4],
-    );
-
-    connectLayers(layer1, layer2);
-    connectLayers(layer2, layer3);
-    connectLayers(layer3, layer4);
-    connectLayers(layer4, layer5);
-
-    const allNodes = [
-        ...layer1,
-        ...layer2,
-        ...layer3,
-        ...layer4,
-        ...layer5,
-    ];
-
-    assignNodeContent(allNodes);
-
-    return {
-        currentNodeId: layer1[0].id,
-        nodes: allNodes,
-    };
+    for (const node of nodes) {
+        if (node.type === "battle") {
+            node.enemyId = getRandomEnemyId(pool);
+        }
+    }
 }
 
 function assignNodeContent(
     nodes: MapNode[],
+    deck: CardState[],
+    availableRelicIds: string[],
+    dungeon: DungeonDefinition,
 ): void {
-    const eventIds = shuffleNodeTypes(
-        [...EVENT_POOL],
-    );
-    let nextEventIndex = 0;
+    const eventIds = shuffle([...(dungeon.eventPool?.length ? dungeon.eventPool : EVENT_POOL)]);
+    let eventIndex = 0;
 
     for (const node of nodes) {
+        const floor = getFloorIndex(node.id);
+
+        if (node.type === "battle") {
+            assignBattleEnemies([node], floor, dungeon);
+        }
+
         if (node.type === "elite") {
-            node.enemyId = "war-goblin";
+            const elitePool = dungeon.eliteEnemyIds?.length
+                ? dungeon.eliteEnemyIds
+                : ELITE_ENEMY_POOL;
+
+            node.enemyId =
+                elitePool[
+                    Math.floor(Math.random() * elitePool.length)
+                ];
         }
 
         if (node.type === "boss") {
-            node.enemyId = "goblin-king";
+            node.enemyId = dungeon.bossEnemyId;
         }
 
         if (node.type === "event") {
-            node.eventId =
-                eventIds[nextEventIndex % eventIds.length];
-            nextEventIndex += 1;
+            node.eventId = eventIds[eventIndex % eventIds.length];
+            eventIndex += 1;
         }
 
         if (node.type === "shop") {
-            node.shopOffers = createShopOffers();
-            node.shopHealPrice = 10;
+            node.shopCardOffers = createShopCardOffers(deck);
+            node.shopRelicOffers = createShopRelicOffers(availableRelicIds);
+            node.shopHealPrice = SHOP_HEAL_PRICE;
             node.shopHealPurchased = false;
+            node.shopRemoveCardPrice = SHOP_REMOVE_CARD_PRICE;
+            node.shopRemoveCardPurchased = false;
         }
     }
 }
 
-export function isValidMap(
-    map: MapState,
-): boolean {
-    if (map.nodes.length === 0) {
+export function getFloorIndex(nodeId: string): number {
+    const match = nodeId.match(/^floor-(\d+)-/);
+    return match ? Number(match[1]) : 0;
+}
+
+export function generateMap(
+    deck: CardState[] = [],
+    availableRelicIds: string[] = [],
+    dungeon: DungeonDefinition,
+): MapState {
+    if (dungeon.layout === "linear") {
+        const floorTypes: MapNodeType[][] = [
+            ["battle"],
+            ["battle"],
+            ["event"],
+            ["rest"],
+            ["elite"],
+            ["boss"],
+        ];
+
+        const layers = floorTypes.map((types, index) =>
+            createLayer(index + 1, types),
+        );
+
+        for (let index = 0; index < layers.length - 1; index += 1) {
+            connectLayers(layers[index], layers[index + 1]);
+        }
+
+        const nodes = layers.flat();
+        assignNodeContent(nodes, deck, availableRelicIds, dungeon);
+
+        return {
+            currentNodeId: nodes[0].id,
+            nodes,
+        };
+    }
+
+    const layers: MapNode[][] = [];
+
+    layers.push(createLayer(1, ["battle"]));
+
+    for (let floor = 2; floor < dungeon.floorCount; floor += 1) {
+        const configuredTypes = dungeon.floorConfigs?.find(
+            (config) => config.floor === floor,
+        )?.nodeTypes;
+
+        const types = shuffle(
+            configuredTypes ?? getStandardFloorTypes(floor),
+        );
+
+        layers.push(createLayer(floor, types));
+    }
+
+    layers.push(createLayer(dungeon.floorCount, ["boss"]));
+
+    for (let index = 0; index < layers.length - 1; index += 1) {
+        connectLayers(layers[index], layers[index + 1]);
+    }
+
+    const nodes = layers.flat();
+    assignNodeContent(nodes, deck, availableRelicIds, dungeon);
+
+    return {
+        currentNodeId: layers[0][0].id,
+        nodes,
+    };
+}
+
+export function isValidMap(map: MapState): boolean {
+    if (!map.nodes.length) {
         return false;
     }
 
-    const nodeIds = new Set(
-        map.nodes.map((node) => node.id),
-    );
+    const nodeIds = new Set(map.nodes.map((node) => node.id));
 
     if (!nodeIds.has(map.currentNodeId)) {
         return false;
@@ -302,36 +352,21 @@ export function isValidMap(
     return canReachBoss(map);
 }
 
-export function canReachBoss(
-    map: MapState,
-): boolean {
-    const startNode = map.nodes.find(
-        (node) =>
-            node.id === map.currentNodeId,
-    );
-
-    if (!startNode) {
-        return false;
-    }
-
+export function canReachBoss(map: MapState): boolean {
     const visited = new Set<string>();
-    const queue = [startNode.id];
+    const queue = [map.currentNodeId];
 
-    while (queue.length > 0) {
+    while (queue.length) {
         const currentNodeId = queue.shift();
 
-        if (
-            !currentNodeId ||
-            visited.has(currentNodeId)
-        ) {
+        if (!currentNodeId || visited.has(currentNodeId)) {
             continue;
         }
 
         visited.add(currentNodeId);
 
         const currentNode = map.nodes.find(
-            (node) =>
-                node.id === currentNodeId,
+            (node) => node.id === currentNodeId,
         );
 
         if (!currentNode) {

@@ -4,7 +4,8 @@ import type { MetaProgressState } from "../types/meta";
 interface HubScreenProps {
     meta: MetaProgressState;
     onStartRun: () => void;
-    onOpenCardVault: () => void;
+    onOpenCardPacks: () => void;
+    onOpenCollection: () => void;
     onOpenArmory: () => void;
 }
 
@@ -76,7 +77,8 @@ function HubStation({
 export default function HubScreen({
     meta,
     onStartRun,
-    onOpenCardVault,
+    onOpenCardPacks,
+    onOpenCollection,
     onOpenArmory,
 }: HubScreenProps) {
     const unlockedAchievements =
@@ -150,10 +152,18 @@ export default function HubScreen({
 
                         <HubStation
                             label="Collection"
-                            title="Card Vault"
-                            description="Open card packs and grow your permanent collection."
-                            value={`${discoveredCards}`}
-                            onClick={onOpenCardVault}
+                            title="Card Packs"
+                            description="Open Ashen Packs and reveal new cards. Duplicates become Dust immediately."
+                            value={`${meta.hubGold} ◆`}
+                            onClick={onOpenCardPacks}
+                        />
+
+                        <HubStation
+                            label="Collection"
+                            title="Collection"
+                            description="Browse the permanent card collection, craft missing cards, and build the deck for your next descent."
+                            value={`${discoveredCards} found`}
+                            onClick={onOpenCollection}
                         />
 
                     </div>
@@ -184,7 +194,7 @@ export default function HubScreen({
                                 onClick={onStartRun}
                                 className="mt-6 border border-orange-800 bg-[#24120d] px-12 py-4 text-sm font-bold uppercase tracking-[0.25em] text-orange-200 shadow-[0_0_32px_rgba(180,70,20,0.1)] transition hover:border-orange-600 hover:bg-[#351711] hover:text-orange-100"
                             >
-                                Begin Descent
+                                Open Dungeon Gate
                             </button>
                         </div>
                     </div>
@@ -204,12 +214,6 @@ export default function HubScreen({
                             disabled
                         />
 
-                        <HubStation
-                            label="Knowledge"
-                            title="Journal"
-                            description="Bestiary, locations, bosses, cards and relics discovered during your journey."
-                            disabled
-                        />
                     </div>
                 </section>
             </div>

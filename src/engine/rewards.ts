@@ -106,12 +106,17 @@ function rollRelic(
 export function createCombatReward(
     reward: EnemyRewardConfig,
     availableRelicIds: string[],
+    ownedRelicIds: string[] = [],
 ): CombatReward {
+    const remainingRelicIds = availableRelicIds.filter(
+        (relicId) => !ownedRelicIds.includes(relicId),
+    );
+
     return {
         gold: reward.gold,
         relicId: rollRelic(
             reward,
-            availableRelicIds,
+            remainingRelicIds,
         ),
     };
 }

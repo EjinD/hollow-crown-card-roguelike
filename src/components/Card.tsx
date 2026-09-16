@@ -1,33 +1,26 @@
-import fireballImage from "../assets/cards/fireball.webp";
-import flameBurstImage from "../assets/cards/flame-burst.webp";
-import emberStrikeImage from "../assets/cards/ember-strike.webp";
-import infernoImage from "../assets/cards/inferno.webp";
-import flameGuardImage from "../assets/cards/flame-guard.webp";
-import emberWallImage from "../assets/cards/ember-wall.webp";
-import emberGuardImage from "../assets/cards/ember-guard.webp";
-import igniteImage from "../assets/cards/ignite.webp";
-import scorchImage from "../assets/cards/scorch.webp";
-import fireStormImage from "../assets/cards/fire-storm.webp";
-
 import type {
+    CardDefinition,
     CardEffect,
     CardState,
 } from "../types/game";
 
 import { cards } from "../data/cards";
 
-const cardArt: Record<string, string> = {
-    fireball: fireballImage,
-    "flame-burst": flameBurstImage,
-    "ember-strike": emberStrikeImage,
-    inferno: infernoImage,
-    "flame-guard": flameGuardImage,
-    "ember-wall": emberWallImage,
-    "ember-guard": emberGuardImage,
-    ignite: igniteImage,
-    scorch: scorchImage,
-    "fire-storm": fireStormImage,
-};
+const cardAssetModules = import.meta.glob(
+    "../assets/cards/*.webp",
+    {
+        eager: true,
+        import: "default",
+        query: "?url",
+    },
+) as Record<string, string>;
+
+const cardArt: Record<string, string> = Object.fromEntries(
+    Object.entries(cardAssetModules).map(([path, url]) => {
+        const file = path.split("/").pop() ?? "";
+        return [file.replace(/\.webp$/i, ""), url];
+    }),
+);
 
 interface CardProps {
     card: CardState;
@@ -44,6 +37,12 @@ function getEffectLabel(
         case "damage":
             return `Damage ${effect.amount}`;
 
+        case "piercing-damage":
+            return `Piercing ${effect.amount}`;
+
+        case "shatter":
+            return `Shatter ${effect.amount}`;
+
         case "burn":
             return `Burn ${effect.amount} / ${effect.duration}`;
 
@@ -58,6 +57,24 @@ function getEffectLabel(
 
         case "heal":
             return `Heal ${effect.amount}`;
+
+        case "reduce-strength":
+            return `-${effect.amount} Strength`;
+
+        case "cleanse-weak":
+            return `Cleanse Weak`;
+
+        case "damage-if-burn":
+            return `Damage ${effect.amount} (+${effect.bonusDamage} Burn)`;
+
+        case "damage-if-player-weak":
+            return `Damage ${effect.amount} (+${effect.bonusDamage} Weak)`;
+
+        case "recover-exiled":
+            return `Recover ${effect.amount} Exiled`;
+
+        case "recover-all-exiled":
+            return "Recover all Exiled";
     }
 }
 
@@ -67,6 +84,12 @@ function getEffectDescription(
     switch (effect.type) {
         case "damage":
             return `Deal ${effect.amount} damage to the enemy.`;
+
+        case "piercing-damage":
+            return `Deal ${effect.amount} fire damage that ignores Block.`;
+
+        case "shatter":
+            return `Deal ${effect.amount} damage and remove all enemy Block.`;
 
         case "burn":
             return `Apply ${effect.amount} Burn for ${effect.duration} turn${effect.duration === 1 ? "" : "s"}.`;
@@ -82,6 +105,24 @@ function getEffectDescription(
 
         case "heal":
             return `Restore ${effect.amount} HP.`;
+
+        case "reduce-strength":
+            return `Reduce the enemy's Strength by ${effect.amount}.`;
+
+        case "cleanse-weak":
+            return `Remove all Weak from yourself.`;
+
+        case "damage-if-burn":
+            return `Deal ${effect.amount} damage, or ${effect.amount + effect.bonusDamage} if the enemy is Burning.`;
+
+        case "damage-if-player-weak":
+            return `Deal ${effect.amount} damage, or ${effect.amount + effect.bonusDamage} while you are Weak.`;
+
+        case "recover-exiled":
+            return `Return ${effect.amount} Exiled card${effect.amount === 1 ? "" : "s"} to your Draw Pile.`;
+
+        case "recover-all-exiled":
+            return "Return all Exiled cards to your Draw Pile.";
     }
 }
 
@@ -91,6 +132,12 @@ function getEffectIcon(
     switch (effect.type) {
         case "damage":
             return "🔥";
+
+        case "piercing-damage":
+            return "◆";
+
+        case "shatter":
+            return "✦";
 
         case "burn":
             return "♨";
@@ -106,6 +153,20 @@ function getEffectIcon(
 
         case "heal":
             return "✚";
+
+        case "reduce-strength":
+            return "↓";
+
+        case "cleanse-weak":
+            return "✧";
+
+        case "damage-if-burn":
+        case "damage-if-player-weak":
+            return "🔥";
+
+        case "recover-exiled":
+        case "recover-all-exiled":
+            return "↶";
     }
 }
 
@@ -115,6 +176,12 @@ function getEffectAccent(
     switch (effect.type) {
         case "damage":
             return "text-orange-300";
+
+        case "piercing-damage":
+            return "text-amber-200";
+
+        case "shatter":
+            return "text-cyan-300";
 
         case "burn":
             return "text-red-300";
@@ -130,6 +197,46 @@ function getEffectAccent(
 
         case "heal":
             return "text-emerald-300";
+
+        case "reduce-strength":
+            return "text-cyan-300";
+
+        case "cleanse-weak":
+            return "text-violet-300";
+
+        case "damage-if-burn":
+        case "damage-if-player-weak":
+            return "text-orange-300";
+
+        case "recover-exiled":
+        case "recover-all-exiled":
+            return "text-purple-300";
+    }
+}
+
+function getRaritySymbol(rarity: CardDefinition["rarity"]): string {
+    switch (rarity) {
+        case "common":
+            return "◇";
+        case "uncommon":
+            return "◆";
+        case "rare":
+            return "✦";
+        case "legendary":
+            return "♛";
+    }
+}
+
+function getRarityAccent(rarity: CardDefinition["rarity"]): string {
+    switch (rarity) {
+        case "common":
+            return "text-stone-300";
+        case "uncommon":
+            return "text-emerald-300";
+        case "rare":
+            return "text-blue-300";
+        case "legendary":
+            return "text-amber-300";
     }
 }
 
@@ -168,7 +275,7 @@ export default function Card({
             }
             aria-label={definition.name}
             className={[
-                "group relative flex h-[240px] w-[164px] origin-bottom flex-col overflow-hidden rounded-[14px]",
+                "group relative flex h-[252px] w-[164px] origin-bottom flex-col overflow-hidden rounded-[14px]",
                 "border border-stone-700/90",
                 "bg-[#120e0b]",
                 "text-left text-stone-100",
@@ -226,7 +333,7 @@ export default function Card({
             <div className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-orange-500/70 to-transparent" />
 
             {/* Artwork */}
-            <div className="relative h-[122px] shrink-0 overflow-hidden border-b border-stone-800/90">
+            <div className="relative h-[118px] shrink-0 overflow-hidden border-b border-stone-800/90 bg-[#0a0807]">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(188,63,18,0.28),transparent_72%)]" />
 
                 {artwork ? (
@@ -235,7 +342,7 @@ export default function Card({
                         alt={definition.name}
                         draggable={false}
                         className={[
-                            "absolute inset-0 h-full w-full object-cover",
+                            "absolute inset-0 h-full w-full object-contain p-1",
                             "transition-transform duration-300",
                             isPlaying
                                 ? "scale-[1.08]"
@@ -254,9 +361,15 @@ export default function Card({
 
                 <div className="absolute left-3 top-2">
                     <span className="rounded-full border border-white/10 bg-black/45 px-2 py-1 text-[8px] uppercase tracking-[0.2em] text-stone-300 backdrop-blur-sm">
-                        Spell
+                        {definition.category}
                     </span>
                 </div>
+
+                {definition.exhaust && (
+                    <div className="absolute right-3 top-2 rounded-full border border-purple-500/50 bg-black/75 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.14em] text-purple-300 shadow-[0_0_14px_rgba(168,85,247,0.2)]">
+                        Exhaust
+                    </div>
+                )}
 
                 {isOnCooldown && (
                     <>
@@ -272,107 +385,78 @@ export default function Card({
             </div>
 
             {/* Main content */}
-            <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
-                <div className="relative mt-2.5">
-                    <h3 className="truncate text-center font-serif text-[13px] font-bold uppercase tracking-[0.08em] text-stone-100">
+            <div className="flex min-h-0 flex-1 flex-col px-3 pb-2.5">
+                <div className="relative mt-2">
+                    <h3 className="truncate text-center font-serif text-[13px] font-bold uppercase tracking-[0.06em] text-stone-100">
                         {definition.name}
                     </h3>
 
-                    <div className="mx-auto mt-1 h-px w-8 bg-orange-500/40" />
-                </div>
-
-                <div className="mt-2.5 flex-1 overflow-hidden">
                     <div
                         className={[
-                            "flex flex-col items-center",
-                            hasMultipleEffects
-                                ? "gap-1.5"
-                                : "gap-1",
+                            "mt-1 flex items-center justify-center",
+                            getRarityAccent(definition.rarity),
+                        ].join(" ")}
+                        title={definition.rarity}
+                        aria-label={`Rarity: ${definition.rarity}`}
+                    >
+                        <span className="text-[13px] leading-none drop-shadow-[0_0_6px_currentColor]">
+                            {getRaritySymbol(definition.rarity)}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="mt-1.5 flex min-h-0 flex-1 overflow-hidden border-t border-stone-800/80 pt-2">
+                    <div
+                        className={[
+                            "flex w-full flex-col justify-center",
+                            hasMultipleEffects ? "gap-1.5" : "gap-1",
                         ].join(" ")}
                     >
-                        {definition.effects.map(
-                            (
-                                effect,
-                                index,
-                            ) => (
+                        {definition.effects.map((effect, index) => {
+                            const description = getEffectDescription(effect);
+
+                            return (
                                 <div
                                     key={`${effect.type}-${index}`}
-                                    className="flex w-full items-center justify-center gap-1.5"
+                                    className="flex items-start gap-1.5"
                                 >
                                     <span
                                         className={[
-                                            "text-[11px]",
-                                            getEffectAccent(
-                                                effect,
-                                            ),
+                                            "mt-0.5 shrink-0 text-[10px]",
+                                            getEffectAccent(effect),
                                         ].join(" ")}
                                     >
-                                        {getEffectIcon(
-                                            effect,
-                                        )}
+                                        {getEffectIcon(effect)}
                                     </span>
 
-                                    <span className="text-[10px] font-medium tracking-wide text-stone-300">
-                                        {getEffectLabel(
-                                            effect,
-                                        )}
-                                    </span>
+                                    <p className="text-[8.5px] leading-[1.28] text-stone-300">
+                                        {description}
+                                    </p>
                                 </div>
-                            ),
-                        )}
+                            );
+                        })}
                     </div>
+                </div>
 
-                    {isHovered &&
-                        !isPlaying && (
-                            <div className="mt-2.5 border-t border-stone-800/80 pt-2">
-                                {definition.effects.map(
-                                    (
-                                        effect,
-                                        index,
-                                    ) => {
-                                        const description =
-                                            getEffectDescription(
-                                                effect,
-                                            );
-
-                                        return (
-                                            <p
-                                                key={`description-${effect.type}-${index}`}
-                                                className="mb-1 text-[8px] leading-[1.25] text-stone-500"
-                                            >
-                                                {
-                                                    description
-                                                }
-                                            </p>
-                                        );
-                                    },
-                                )}
+                {(definition.exhaust || isOnCooldown) && (
+                    <div className="mt-1.5 border-t border-stone-800/80 pt-1.5">
+                        {definition.exhaust ? (
+                            <div className="flex items-center justify-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                                <span className="text-[8px] font-medium uppercase tracking-[0.18em] text-purple-400">
+                                    Exhausts
+                                </span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_7px_rgba(239,68,68,0.65)]" />
+                                <span className="text-[8px] font-medium uppercase tracking-[0.18em] text-red-400">
+                                    Cooldown {card.cooldownRemaining}
+                                </span>
                             </div>
                         )}
-                </div>
-
-                <div className="mt-2 border-t border-stone-800/80 pt-2">
-                    {isOnCooldown ? (
-                        <div className="flex items-center justify-center gap-1.5">
-                            <span className="h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_7px_rgba(239,68,68,0.65)]" />
-
-                            <span className="text-[8px] font-medium uppercase tracking-[0.18em] text-red-400">
-                                Cooldown{" "}
-                                {
-                                    card.cooldownRemaining
-                                }
-                            </span>
-                        </div>
-                    ) : (
-                        <div className="flex items-center justify-center gap-1.5">
-                            <span className="h-1.5 w-1.5 rounded-full bg-orange-500/60" />
-
-                            <span className="text-[8px] font-medium uppercase tracking-[0.18em] text-stone-600">
-                                Ready
-                            </span>
-                        </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
 
             {!disabled &&

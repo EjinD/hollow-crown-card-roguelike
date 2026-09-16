@@ -325,4 +325,133 @@ export const events: EventDefinition[] = [
             },
         ],
     },
+    {
+        id: "ashen-toll",
+        name: "The Ashen Toll",
+        subtitle: "The gate demands a price.",
+        description:
+            "A collapsed gate blocks the lower keep. Iron bells ring whenever someone approaches, and the ash around them is warm.",
+        choices: [
+            {
+                id: "pay",
+                label: "Pay the Keepers",
+                description: "Lose 15 Gold and continue safely.",
+                requirement: { type: "gold", amount: 15 },
+                effects: [{ type: "lose-gold", amount: 15 }],
+            },
+            {
+                id: "force",
+                label: "Force the Gate",
+                description: "Lose 4 HP and gain 20 Gold from the hidden cache behind it.",
+                requirement: { type: "hp", amount: 5 },
+                effects: [
+                    { type: "lose-hp", amount: 4 },
+                    { type: "gain-gold", amount: 20 },
+                ],
+            },
+            {
+                id: "leave",
+                label: "Turn Back",
+                effects: [],
+            },
+        ],
+    },
+    {
+        id: "cinder-pilgrims",
+        name: "Cinder Pilgrims",
+        subtitle: "They walk without shadows.",
+        description:
+            "A silent procession crosses the ruins. One pilgrim stops and offers a blackened token in exchange for something you carry.",
+        choices: [
+            {
+                id: "token",
+                label: "Give Them a Card",
+                description: "Remove a random card and gain 25 Gold.",
+                requirement: { type: "deck-size", min: 11 },
+                effects: [
+                    { type: "remove-random-card" },
+                    { type: "gain-gold", amount: 25 },
+                ],
+            },
+            {
+                id: "blood",
+                label: "Offer Blood",
+                description: "Lose 5 HP and receive a random Relic.",
+                requirement: { type: "hp", amount: 6 },
+                effects: [
+                    { type: "lose-hp", amount: 5 },
+                    { type: "random-relic" },
+                ],
+            },
+            {
+                id: "ignore",
+                label: "Keep Walking",
+                effects: [],
+            },
+        ],
+    },
+    {
+        id: "wardens-chains",
+        name: "The Warden's Chains",
+        subtitle: "Something below is still bound.",
+        description:
+            "Ancient chains disappear into a shaft beneath the keep. They are etched with the same sigil carried by the Ash Warden.",
+        choices: [
+            {
+                id: "break",
+                label: "Break the Chains",
+                description: "Lose 6 HP and gain 35 Gold.",
+                requirement: { type: "hp", amount: 7 },
+                effects: [
+                    { type: "lose-hp", amount: 6 },
+                    { type: "gain-gold", amount: 35 },
+                ],
+            },
+            {
+                id: "study",
+                label: "Study the Sigil",
+                description: "Gain a random card and lose 10 Gold.",
+                requirement: { type: "gold", amount: 10 },
+                effects: [
+                    { type: "lose-gold", amount: 10 },
+                    { type: "add-random-card" },
+                ],
+            },
+            {
+                id: "leave",
+                label: "Leave It Alone",
+                effects: [],
+            },
+        ],
+    },
+    {
+        id: "smoldering-reliquary",
+        name: "The Smoldering Reliquary",
+        subtitle: "A relic waits beneath the ash.",
+        description:
+            "A reliquary has survived the fire. Its seal is broken, but whatever rests inside is still warm.",
+        choices: [
+            {
+                id: "open",
+                label: "Open the Reliquary",
+                description: "Lose 7 HP and receive a random Relic.",
+                requirement: { type: "hp", amount: 8 },
+                effects: [
+                    { type: "lose-hp", amount: 7 },
+                    { type: "random-relic" },
+                ],
+            },
+            {
+                id: "sell",
+                label: "Take the Metal",
+                description: "Gain 35 Gold without opening the seal.",
+                effects: [{ type: "gain-gold", amount: 35 }],
+            },
+            {
+                id: "leave",
+                label: "Leave It Sealed",
+                effects: [],
+            },
+        ],
+    },
 ];

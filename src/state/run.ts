@@ -8,6 +8,8 @@ import {
     cloneDeck,
     starterDeck,
     addCardToDeck,
+    removeCardFromDeck as removeCardFromDeckState,
+    createDeckFromIds,
 } from "../data/deck";
 
 import { enemies } from "../data/enemies";
@@ -27,15 +29,21 @@ import type { EventChoice, EventEffect, EventRequirement } from "../types/events
 import type { HubUpgradeState } from "../types/meta";
 
 import { generateMap } from "../data/map";
+import { getDungeonById } from "../data/dungeons";
+import {
+    getShopHealAmount,
+    SHOP_HEAL_PRICE,
+    SHOP_REMOVE_CARD_PRICE,
+} from "../data/shop";
 
 export function startRun(
     availableRelicIds: string[] = [
         "molten-heart",
     ],
     hubUpgrades: HubUpgradeState[] = [],
+    savedDeckIds?: string[],
+    dungeonId = "tutorial",
 ): RunState {
-    const map = generateMap();
-
     const maxHpUpgradeLevel =
         hubUpgrades.find(
             (upgrade) => upgrade.id === "max-hp",
@@ -52,11 +60,36 @@ export function startRun(
     const baseActions =
         BASE_ACTIONS + Math.min(1, Math.max(0, baseActionsUpgradeLevel));
 
+    const customDeck = savedDeckIds
+        ? createDeckFromIds(savedDeckIds)
+        : [];
+
+    const deck =
+        customDeck.length >= MIN_DECK_SIZE &&
+        customDeck.length <= MAX_DECK_SIZE
+            ? customDeck
+            : cloneDeck(starterDeck);
+
+    const dungeon =
+        getDungeonById(dungeonId) ??
+        getDungeonById("tutorial");
+
+    if (!dungeon) {
+        throw new Error("Tutorial dungeon is missing.");
+    }
+
+    const map = generateMap(
+        deck,
+        availableRelicIds,
+        dungeon,
+    );
+
     return {
+        dungeonId: dungeon.id,
         hp: maxHp,
         maxHp,
         gold: 0,
-        deck: cloneDeck(starterDeck),
+        deck,
         baseActions,
         relics: [],
         availableRelicIds: [
@@ -146,33 +179,26 @@ export function buyShopCard(
     run: RunState,
     cardId: string,
 ): RunState {
-    const currentNode =
-        getCurrentMapNode(run);
+    const currentNode = getCurrentMapNode(run);
 
     if (
         !currentNode ||
         currentNode.type !== "shop" ||
         currentNode.completed ||
-        !currentNode.shopOffers
+        !currentNode.shopCardOffers
     ) {
         return run;
     }
 
-    const offerIndex =
-        currentNode.shopOffers.findIndex(
-            (offer) =>
-                offer.cardId === cardId &&
-                !offer.purchased,
-        );
+    const offerIndex = currentNode.shopCardOffers.findIndex(
+        (offer) => offer.cardId === cardId && !offer.purchased,
+    );
 
     if (offerIndex === -1) {
         return run;
     }
 
-    const offer =
-        currentNode.shopOffers[offerIndex];
-
-    if (run.gold < offer.price) {
+    if (run.deck.some((card) => card.cardId === cardId)) {
         return run;
     }
 
@@ -180,47 +206,93 @@ export function buyShopCard(
         return run;
     }
 
-    const updatedDeck =
-        addCardToDeck(
-            run.deck,
-            cardId,
-        );
+    const offer = currentNode.shopCardOffers[offerIndex];
+
+    if (run.gold < offer.price) {
+        return run;
+    }
+
+    const updatedDeck = addCardToDeck(run.deck, cardId);
+
+    if (updatedDeck.length === run.deck.length) {
+        return run;
+    }
+
+    const updatedOffers = currentNode.shopCardOffers.map(
+        (currentOffer, index) =>
+            index === offerIndex
+                ? { ...currentOffer, purchased: true }
+                : currentOffer,
+    );
+
+    return {
+        ...run,
+        gold: run.gold - offer.price,
+        deck: updatedDeck,
+        map: {
+            ...run.map,
+            nodes: run.map.nodes.map((node) =>
+                node.id === currentNode.id
+                    ? {
+                          ...node,
+                          shopCardOffers: updatedOffers,
+                      }
+                    : node,
+            ),
+        },
+    };
+}
+
+export function buyShopRelic(
+    run: RunState,
+    relicId: string,
+): RunState {
+    const currentNode = getCurrentMapNode(run);
 
     if (
-        updatedDeck.length ===
-        run.deck.length
+        !currentNode ||
+        currentNode.type !== "shop" ||
+        currentNode.completed ||
+        !currentNode.shopRelicOffers ||
+        run.relics.includes(relicId)
     ) {
         return run;
     }
 
-    const updatedOffers =
-        currentNode.shopOffers.map(
-            (currentOffer, index) =>
-                index === offerIndex
-                    ? {
-                          ...currentOffer,
-                          purchased: true,
-                      }
-                    : currentOffer,
-        );
+    const offerIndex = currentNode.shopRelicOffers.findIndex(
+        (offer) => offer.relicId === relicId && !offer.purchased,
+    );
+
+    if (offerIndex === -1) {
+        return run;
+    }
+
+    const offer = currentNode.shopRelicOffers[offerIndex];
+
+    if (run.gold < offer.price) {
+        return run;
+    }
+
+    const updatedOffers = currentNode.shopRelicOffers.map(
+        (currentOffer, index) =>
+            index === offerIndex
+                ? { ...currentOffer, purchased: true }
+                : currentOffer,
+    );
 
     return {
         ...run,
-        gold:
-            run.gold - offer.price,
-        deck: updatedDeck,
+        gold: run.gold - offer.price,
+        relics: [...run.relics, relicId],
         map: {
             ...run.map,
-            nodes: run.map.nodes.map(
-                (node) =>
-                    node.id ===
-                    currentNode.id
-                        ? {
-                              ...node,
-                              shopOffers:
-                                  updatedOffers,
-                          }
-                        : node,
+            nodes: run.map.nodes.map((node) =>
+                node.id === currentNode.id
+                    ? {
+                          ...node,
+                          shopRelicOffers: updatedOffers,
+                      }
+                    : node,
             ),
         },
     };
@@ -229,50 +301,91 @@ export function buyShopCard(
 export function healAtShop(
     run: RunState,
 ): RunState {
-    const currentNode =
-        getCurrentMapNode(run);
+    const currentNode = getCurrentMapNode(run);
 
     if (
         !currentNode ||
         currentNode.type !== "shop" ||
         currentNode.completed ||
-        currentNode.shopHealPurchased ||
-        currentNode.shopHealPrice ===
-            undefined
+        currentNode.shopHealPurchased
     ) {
         return run;
     }
 
-    const price =
-        currentNode.shopHealPrice;
+    const price = currentNode.shopHealPrice ?? SHOP_HEAL_PRICE;
+    const healAmount = getShopHealAmount(run.maxHp);
 
-    if (run.gold < price) {
-        return run;
-    }
-
-    if (run.hp >= run.maxHp) {
+    if (
+        run.gold < price ||
+        run.hp >= run.maxHp
+    ) {
         return run;
     }
 
     return {
         ...run,
         gold: run.gold - price,
-        hp: Math.min(
-            run.hp + 3,
-            run.maxHp,
-        ),
+        hp: Math.min(run.maxHp, run.hp + healAmount),
         map: {
             ...run.map,
-            nodes: run.map.nodes.map(
-                (node) =>
-                    node.id ===
-                    currentNode.id
-                        ? {
-                              ...node,
-                              shopHealPurchased:
-                                  true,
-                          }
-                        : node,
+            nodes: run.map.nodes.map((node) =>
+                node.id === currentNode.id
+                    ? {
+                          ...node,
+                          shopHealPurchased: true,
+                      }
+                    : node,
+            ),
+        },
+    };
+}
+
+export function removeCardAtShop(
+    run: RunState,
+    cardId: string,
+): RunState {
+    const currentNode = getCurrentMapNode(run);
+
+    if (
+        !currentNode ||
+        currentNode.type !== "shop" ||
+        currentNode.completed ||
+        currentNode.shopRemoveCardPurchased ||
+        run.deck.length <= MIN_DECK_SIZE
+    ) {
+        return run;
+    }
+
+    const price =
+        currentNode.shopRemoveCardPrice ??
+        SHOP_REMOVE_CARD_PRICE;
+
+    if (run.gold < price) {
+        return run;
+    }
+
+    const updatedDeck = removeCardFromDeckState(
+        run.deck,
+        cardId,
+    );
+
+    if (updatedDeck.length === run.deck.length) {
+        return run;
+    }
+
+    return {
+        ...run,
+        gold: run.gold - price,
+        deck: updatedDeck,
+        map: {
+            ...run.map,
+            nodes: run.map.nodes.map((node) =>
+                node.id === currentNode.id
+                    ? {
+                          ...node,
+                          shopRemoveCardPurchased: true,
+                      }
+                    : node,
             ),
         },
     };
@@ -305,10 +418,17 @@ export function completeCombat(
         return run;
     }
 
+    const currentNode = getCurrentMapNode(run);
+    const isFinalBoss = currentNode?.type === "boss";
+    const rewardConfig = isFinalBoss
+        ? { ...enemy.reward, tier: "boss" as const }
+        : enemy.reward;
+
     const reward =
         createCombatReward(
-            enemy.reward,
+            rewardConfig,
             run.availableRelicIds,
+            run.relics,
         );
 
     const updatedRun: RunState = {
@@ -320,10 +440,10 @@ export function completeCombat(
         gold:
             run.gold + reward.gold,
         pendingReward: reward,
-        status: enemy.lastFight
+        status: isFinalBoss
             ? "completed"
             : "active",
-        result: enemy.lastFight
+        result: isFinalBoss
             ? "victory"
             : null,
     };
@@ -415,6 +535,84 @@ export function getAvailableNextNodes(
             ): node is MapNode =>
                 node !== undefined,
         );
+}
+
+export type RestAction = "recover" | "purge" | "sacrifice";
+
+export function resolveRest(
+    run: RunState,
+    action: RestAction,
+    cardId?: string,
+): RunState {
+    const currentNode = getCurrentMapNode(run);
+
+    if (
+        !currentNode ||
+        currentNode.type !== "rest" ||
+        currentNode.completed
+    ) {
+        return run;
+    }
+
+    if (action === "recover") {
+        if (run.hp >= run.maxHp) {
+            return run;
+        }
+
+        const healAmount = Math.max(
+            1,
+            Math.ceil(run.maxHp * 0.3),
+        );
+
+        return completeCurrentMapNode({
+            ...run,
+            hp: Math.min(
+                run.maxHp,
+                run.hp + healAmount,
+            ),
+        });
+    }
+
+    if (action === "purge") {
+        if (
+            run.deck.length <= MIN_DECK_SIZE ||
+            !cardId
+        ) {
+            return run;
+        }
+
+        const updatedDeck = removeCardFromDeckState(
+            run.deck,
+            cardId,
+        );
+
+        if (updatedDeck.length === run.deck.length) {
+            return run;
+        }
+
+        return completeCurrentMapNode({
+            ...run,
+            deck: updatedDeck,
+        });
+    }
+
+    if (run.hp <= 1) {
+        return run;
+    }
+
+    const hpLoss = Math.max(
+        1,
+        Math.ceil(run.maxHp * 0.1),
+    );
+
+    return completeCurrentMapNode({
+        ...run,
+        hp: Math.max(
+            1,
+            run.hp - hpLoss,
+        ),
+        gold: run.gold + 30,
+    });
 }
 
 export function isCombatNode(
@@ -734,4 +932,10 @@ export function completeCurrentShop(
     return completeCurrentMapNode(
         run,
     );
+}
+
+export function enterCurrentShop(
+    run: RunState,
+): RunState {
+    return completeCurrentShop(run);
 }

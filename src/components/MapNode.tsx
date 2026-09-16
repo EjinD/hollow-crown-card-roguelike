@@ -1,6 +1,4 @@
-import type {
-    MapNode as MapNodeType,
-} from "../types/game";
+import type { MapNode as MapNodeType } from "../types/game";
 
 interface MapNodeProps {
     node: MapNodeType;
@@ -9,87 +7,82 @@ interface MapNodeProps {
     onClick: (nodeId: string) => void;
 }
 
-function getNodeIcon(
-    type: MapNodeType["type"],
-): string {
+function getNodeIcon(type: MapNodeType["type"]): string {
     switch (type) {
         case "battle":
             return "⚔";
-
         case "elite":
             return "☠";
-
         case "event":
             return "?";
-
         case "shop":
             return "♜";
-
+        case "rest":
+            return "🔥";
         case "boss":
             return "♛";
     }
 }
 
-function getNodeLabel(
-    type: MapNodeType["type"],
-): string {
+function getNodeLabel(type: MapNodeType["type"]): string {
     switch (type) {
         case "battle":
             return "Battle";
-
         case "elite":
             return "Elite";
-
         case "event":
             return "Event";
-
         case "shop":
             return "Shop";
-
+        case "rest":
+            return "Rest";
         case "boss":
             return "Boss";
     }
 }
 
-function getNodeTypeClass(
-    type: MapNodeType["type"],
-): string {
+function getNodePalette(type: MapNodeType["type"]): {
+    edge: string;
+    icon: string;
+    glow: string;
+} {
     switch (type) {
         case "battle":
-            return "border-stone-600";
-
+            return {
+                edge: "border-stone-500/60",
+                icon: "text-stone-200",
+                glow: "rgba(148,163,184,0.22)",
+            };
         case "elite":
-            return "border-red-800";
-
+            return {
+                edge: "border-red-500/70",
+                icon: "text-red-300",
+                glow: "rgba(239,68,68,0.28)",
+            };
         case "event":
-            return "border-purple-900";
-
+            return {
+                edge: "border-violet-500/60",
+                icon: "text-violet-200",
+                glow: "rgba(139,92,246,0.24)",
+            };
         case "shop":
-            return "border-amber-900";
-
+            return {
+                edge: "border-amber-400/60",
+                icon: "text-amber-200",
+                glow: "rgba(245,158,11,0.24)",
+            };
+        case "rest":
+            return {
+                edge: "border-orange-400/60",
+                icon: "text-orange-200",
+                glow: "rgba(249,115,22,0.26)",
+            };
         case "boss":
-            return "border-red-500";
-    }
-}
-
-function getIconClass(
-    type: MapNodeType["type"],
-): string {
-    switch (type) {
-        case "battle":
-            return "text-stone-300";
-
-        case "elite":
-            return "text-red-400";
-
-        case "event":
-            return "text-purple-300";
-
-        case "shop":
-            return "text-amber-300";
-
-        case "boss":
-            return "text-red-300";
+            return {
+                edge: "border-red-400/80",
+                icon: "text-red-200",
+                glow: "rgba(248,113,113,0.42)",
+            };
     }
 }
 
@@ -99,149 +92,89 @@ export default function MapNode({
     isAvailable,
     onClick,
 }: MapNodeProps) {
-    const isCompleted =
-        node.completed;
-
-    const isLocked =
-        !isCompleted &&
-        !isCurrent &&
-        !isAvailable;
-
-    const isInteractive =
-        isCurrent ||
-        isAvailable;
-
-    const sizeClass =
-        node.type === "boss"
-            ? "h-24 w-24"
-            : "h-20 w-20";
-
-    const stateClass =
-        isCompleted
-            ? [
-                "border-stone-700",
-                "bg-[#11100f]",
-                "text-stone-600",
-                "opacity-65",
-            ].join(" ")
-            : isCurrent
-              ? [
-                    "border-orange-400",
-                    "bg-[#24130e]",
-                    "text-orange-100",
-                    "shadow-[0_0_35px_rgba(234,88,12,0.65)]",
-                    "scale-105",
-                ].join(" ")
-              : isAvailable
-                ? [
-                      "cursor-pointer",
-                      "bg-[#17120f]",
-                      "text-stone-200",
-                      "shadow-[0_0_18px_rgba(180,60,30,0.35)]",
-                      "hover:scale-110",
-                      "hover:border-orange-400",
-                      "hover:text-orange-100",
-                  ].join(" ")
-                : isLocked
-                  ? [
-                        "cursor-default",
-                        "border-stone-800",
-                        "bg-[#0d0b0a]",
-                        "text-stone-700",
-                        "opacity-45",
-                    ].join(" ")
-                  : "";
+    const isCompleted = node.completed;
+    const isInteractive = isCurrent || isAvailable;
+    const palette = getNodePalette(node.type);
+    const label = getNodeLabel(node.type);
 
     return (
         <button
             type="button"
             disabled={!isInteractive}
-            onClick={() =>
-                onClick(node.id)
-            }
-            aria-label={getNodeLabel(
-                node.type,
-            )}
-            aria-current={
-                isCurrent
-                    ? "step"
-                    : undefined
-            }
+            onClick={() => onClick(node.id)}
+            data-map-node-id={node.id}
+            aria-label={label}
+            aria-current={isCurrent ? "step" : undefined}
             className={[
-                "group relative flex flex-col items-center justify-center rounded-full border-2",
-                "transition-all duration-200 ease-out",
-                "select-none",
-                sizeClass,
-                getNodeTypeClass(
-                    node.type,
-                ),
-                stateClass,
+                "group relative flex h-[92px] w-[112px] items-center justify-center",
+                "select-none transition-all duration-300 ease-out",
+                isInteractive ? "cursor-pointer" : "cursor-default",
+                isCurrent ? "scale-[1.08]" : "",
+                isAvailable && !isCurrent ? "hover:-translate-y-1 hover:scale-[1.04]" : "",
             ].join(" ")}
         >
             {isCurrent && (
-                <>
-                    <span className="absolute inset-[-7px] rounded-full border border-orange-500/40" />
-
-                    <span className="absolute inset-[-14px] rounded-full border border-orange-500/10" />
-                </>
+                <span
+                    className="absolute -inset-3 rounded-[32px] blur-[18px]"
+                    style={{ background: palette.glow }}
+                />
             )}
 
             {isAvailable && !isCurrent && (
-                <span className="absolute inset-[-6px] rounded-full border border-orange-700/30 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-            )}
-
-            {isCompleted && (
-                <span className="absolute inset-0 rounded-full bg-stone-950/30" />
+                <span
+                    className="absolute -inset-2 rounded-[28px] opacity-0 blur-[14px] transition-opacity duration-300 group-hover:opacity-100"
+                    style={{ background: palette.glow }}
+                />
             )}
 
             <span
                 className={[
-                    "relative z-10 text-2xl leading-none",
-                    "transition-transform duration-200",
-                    node.type ===
-                    "boss"
-                        ? "text-3xl"
+                    "absolute inset-0 border-2",
+                    "[clip-path:polygon(15%_0%,85%_0%,100%_50%,85%_100%,15%_100%,0%_50%)]",
+                    palette.edge,
+                    isCurrent
+                        ? "bg-[#32170f] shadow-[0_0_30px_rgba(234,88,12,0.55)]"
+                        : isCompleted
+                          ? "bg-[#12100f] opacity-55"
+                          : isAvailable
+                            ? "bg-[#1c1714] shadow-[0_0_20px_rgba(180,60,30,0.18)]"
+                            : "bg-[#0e0d0c] opacity-35",
+                ].join(" ")}
+            />
+
+            <span
+                className="absolute inset-[5px] border border-white/5 bg-[linear-gradient(145deg,rgba(255,255,255,0.045),transparent_32%,rgba(0,0,0,0.35))] [clip-path:polygon(15%_0%,85%_0%,100%_50%,85%_100%,15%_100%,0%_50%)]"
+            />
+
+            <span
+                className={[
+                    "relative z-10 text-[30px] leading-none",
+                    palette.icon,
+                    isCompleted ? "text-stone-600" : "",
+                    isAvailable && !isCurrent
+                        ? "transition-transform duration-300 group-hover:scale-110"
                         : "",
-                    getIconClass(
-                        node.type,
-                    ),
-                    isAvailable &&
-                    !isCurrent
-                        ? "group-hover:scale-110"
-                        : "",
+                    node.type === "boss" ? "text-[38px]" : "",
                 ].join(" ")}
             >
-                {isCompleted
-                    ? "✓"
-                    : getNodeIcon(
-                          node.type,
-                      )}
+                {isCompleted ? "✓" : getNodeIcon(node.type)}
             </span>
 
             <span
                 className={[
-                    "relative z-10 mt-1 text-[8px] uppercase tracking-[0.18em]",
-                    isCompleted
-                        ? "text-stone-600"
-                        : "",
+                    "absolute bottom-[-16px] z-20 rounded-full border px-2.5 py-1",
+                    "bg-[#0b0908]/95 text-[7px] uppercase tracking-[0.24em]",
+                    isCurrent
+                        ? "border-orange-700/70 text-orange-300"
+                        : isCompleted
+                          ? "border-stone-800 text-stone-600"
+                          : isAvailable
+                            ? "border-stone-700 text-stone-300"
+                            : "border-stone-900 text-stone-700",
                 ].join(" ")}
             >
-                {getNodeLabel(
-                    node.type,
-                )}
+                {isCurrent ? "Current" : isCompleted ? "Cleared" : label}
             </span>
-
-            {isCompleted && (
-                <span className="absolute -bottom-2 rounded-full border border-stone-700 bg-[#0c0a08] px-2 py-0.5 text-[7px] uppercase tracking-[0.18em] text-stone-500">
-                    Cleared
-                </span>
-            )}
-
-            {isCurrent && (
-                <span className="absolute -bottom-2 rounded-full border border-orange-800/70 bg-[#140b07] px-2 py-0.5 text-[7px] uppercase tracking-[0.18em] text-orange-400">
-                    Current
-                </span>
-            )}
         </button>
     );
 }

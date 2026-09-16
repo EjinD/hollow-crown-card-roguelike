@@ -12,11 +12,6 @@ import type {
 
 import { enemies } from "../data/enemies";
 import { cards } from "../data/cards";
-
-import goblinImage from "../assets/characters/goblin.png";
-import shieldGoblinImage from "../assets/characters/shield-goblin.png";
-import warGoblinImage from "../assets/characters/war-goblin.png";
-import goblinKingImage from "../assets/characters/goblin-king.png";
 import playerImage from "../assets/characters/player.png";
 import battlefieldImage from "../assets/backgrounds/battlefield.png";
 
@@ -24,7 +19,6 @@ import CombatCharacter, {
     type CharacterEffect,
     type EnemyActionEffect,
 } from "./CombatCharacter";
-
 import CombatHeader from "./CombatHeader";
 import StatusEffects from "./StatusEffects";
 import CombatTable from "./CombatTable";
@@ -32,10 +26,25 @@ import CombatHealthBar from "./CombatHealthBar";
 import PlayedCardOverlay from "./PlayedCardOverlay";
 import EnemyIntent from "./EnemyIntent";
 import InventoryScreen from "./InventoryScreen";
-
 import CombatFeedback, {
     type CombatFeedbackItem,
 } from "./CombatFeedbackOverlay";
+
+const enemyAssetModules = import.meta.glob(
+    "../assets/characters/*.{png,webp}",
+    {
+        eager: true,
+        import: "default",
+        query: "?url",
+    },
+) as Record<string, string>;
+
+const enemyImages: Record<string, string> = Object.fromEntries(
+    Object.entries(enemyAssetModules).map(([path, url]) => {
+        const file = path.split("/").pop() ?? "";
+        return [file.replace(/\.(png|webp)$/i, ""), url];
+    }),
+);
 
 interface CombatScreenProps {
     combat: CombatState;
@@ -92,6 +101,33 @@ function getStatusCounts(
                 0,
             ),
     };
+}
+
+function CombatStatBadge({
+    icon,
+    value,
+    title,
+    description,
+    tone,
+}: {
+    icon: string;
+    value: number;
+    title: string;
+    description: string;
+    tone: string;
+}) {
+    return (
+        <div className="group relative">
+            <div className={`flex items-center gap-1.5 text-sm font-bold ${tone}`}>
+                <span>{icon}</span>
+                <span>{value}</span>
+            </div>
+            <div className="pointer-events-none absolute right-0 top-full z-[70] mt-2 w-52 translate-y-1 border border-stone-700 bg-[#100b09]/98 px-3 py-2.5 text-left opacity-0 shadow-[0_10px_30px_rgba(0,0,0,0.65)] transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-200">{title}</p>
+                <p className="mt-1.5 text-[10px] leading-[1.35] text-stone-400">{description}</p>
+            </div>
+        </div>
+    );
 }
 
 export default function CombatScreen({
@@ -165,24 +201,11 @@ export default function CombatScreen({
         !isEnemyTurnAnimating &&
         !isEnemyAttacking;
 
-    const enemyImages: Record<
-        string,
-        string
-    > = {
-        goblin: goblinImage,
-        "shield-goblin":
-            shieldGoblinImage,
-        "war-goblin":
-            warGoblinImage,
-        "goblin-king":
-            goblinKingImage,
-    };
-
     const enemyImage =
         enemyImages[
             combat.enemy
                 .definitionId
-        ];
+        ] ?? enemyImages.goblin;
 
     const enemyDefinition =
         enemies.find(
@@ -299,6 +322,17 @@ export default function CombatScreen({
                 "player",
                 `+${combat.player.hp - previous.player.hp} HP`,
                 "heal",
+            );
+        }
+
+        if (
+            combat.enemy.strength <
+            previous.enemy.strength
+        ) {
+            addFeedback(
+                "enemy",
+                `-${previous.enemy.strength - combat.enemy.strength} Strength`,
+                "status",
             );
         }
 
@@ -505,10 +539,12 @@ export default function CombatScreen({
         const targetsEnemy =
             definition.effects.some(
                 (effect) =>
-                    effect.type ===
-                        "damage" ||
-                    effect.type ===
-                        "burn",
+                    effect.type === "damage" ||
+                    effect.type === "piercing-damage" ||
+                    effect.type === "shatter" ||
+                    effect.type === "burn" ||
+                    effect.type === "reduce-strength" ||
+                    effect.type === "damage-if-burn",
             );
 
         return targetsEnemy
@@ -528,6 +564,7 @@ export default function CombatScreen({
     ) {
         if (
             !isPlayerTurn ||
+            combat.player.actions <= 0 ||
             playingCard
         ) {
             return;
@@ -617,36 +654,22 @@ export default function CombatScreen({
                                 </span>
 
                                 <div className="flex items-center gap-3">
-                                    <span className="text-xl font-bold text-stone-100">
-                                        {
-                                            combat
-                                                .player
-                                                .hp
-                                        }
+                                    {combat.player.block > 0 && (
+                                        <CombatStatBadge
+                                            icon="🛡"
+                                            value={combat.player.block}
+                                            title="Block"
+                                            description="Absorbs incoming damage before HP is lost. Player Block resets at the start of the next player turn."
+                                            tone="text-sky-300"
+                                        />
+                                    )}
 
+                                    <span className="text-xl font-bold text-stone-100">
+                                        {combat.player.hp}
                                         <span className="text-stone-500">
-                                            /
-                                            {
-                                                combat
-                                                    .player
-                                                    .maxHp
-                                            }
+                                            /{combat.player.maxHp}
                                         </span>
                                     </span>
-
-                                    {combat
-                                        .player
-                                        .block >
-                                        0 && (
-                                        <span className="text-sm font-bold text-sky-300">
-                                            🛡{" "}
-                                            {
-                                                combat
-                                                    .player
-                                                    .block
-                                            }
-                                        </span>
-                                    )}
                                 </div>
                             </div>
 
@@ -668,11 +691,8 @@ export default function CombatScreen({
                         </div>
 
                         <StatusEffects
-                            effects={
-                                combat
-                                    .player
-                                    .statusEffects
-                            }
+                            effects={combat.player.statusEffects}
+                            side="player"
                         />
                     </div>
 
@@ -680,23 +700,36 @@ export default function CombatScreen({
                     <div className="w-[300px]">
                         <div className="border border-stone-700/80 bg-[#100c0a]/90 px-4 py-3 shadow-[0_6px_25px_rgba(0,0,0,0.45)]">
                             <div className="flex items-center justify-between">
-                                <span className="text-[10px] uppercase tracking-[0.3em] text-stone-500">
-                                    Enemy
-                                </span>
+                                <div className="min-w-0">
+                                    <span className="max-w-[170px] truncate text-[11px] font-bold uppercase tracking-[0.18em] text-stone-300" title={enemyDefinition?.name ?? "Enemy"}>
+                                        {enemyDefinition?.name ?? "Enemy"}
+                                    </span>
+                                    {enemyDefinition?.phases && combat.enemy.bossPhase != null && (
+                                        <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-500/80">
+                                            {enemyDefinition.phases[combat.enemy.bossPhase]?.name ?? `Phase ${combat.enemy.bossPhase + 1}`}
+                                        </div>
+                                    )}
+                                </div>
 
                                 <div className="flex items-center gap-3">
-                                    {combat
-                                        .enemy
-                                        .block >
-                                        0 && (
-                                        <span className="text-sm font-bold text-sky-300">
-                                            🛡{" "}
-                                            {
-                                                combat
-                                                    .enemy
-                                                    .block
-                                            }
-                                        </span>
+                                    {combat.enemy.block > 0 && (
+                                        <CombatStatBadge
+                                            icon="🛡"
+                                            value={combat.enemy.block}
+                                            title="Block"
+                                            description="Absorbs incoming damage before HP is lost. Enemy Block persists until it is consumed."
+                                            tone="text-sky-300"
+                                        />
+                                    )}
+
+                                    {combat.enemy.strength > 0 && (
+                                        <CombatStatBadge
+                                            icon="⚔"
+                                            value={combat.enemy.strength}
+                                            title="Strength"
+                                            description="Adds this amount to the damage of the enemy's attacks."
+                                            tone="text-amber-300"
+                                        />
                                     )}
 
                                     <span className="text-xl font-bold text-stone-100">
@@ -732,11 +765,8 @@ export default function CombatScreen({
                         </div>
 
                         <StatusEffects
-                            effects={
-                                combat
-                                    .enemy
-                                    .statusEffects
-                            }
+                            effects={combat.enemy.statusEffects}
+                            side="enemy"
                         />
                     </div>
                 </div>

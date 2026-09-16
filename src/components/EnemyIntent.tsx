@@ -12,9 +12,13 @@ function getIntentIcon(
 ): string {
     switch (intent.type) {
         case "attack":
+        case "attack-debuff":
+        case "attack-buff":
+        case "drain":
             return "⚔";
 
         case "block":
+        case "block-buff":
             return "🛡";
 
         case "heal":
@@ -35,8 +39,20 @@ function getIntentLabel(
         case "attack":
             return "Attack";
 
+        case "attack-debuff":
+            return "Venom Strike";
+
+        case "attack-buff":
+            return "Ravaging Strike";
+
+        case "drain":
+            return "Drain";
+
         case "block":
             return "Block";
+
+        case "block-buff":
+            return "Fortify";
 
         case "heal":
             return "Heal";
@@ -54,9 +70,13 @@ function getIntentColor(
 ): string {
     switch (intent.type) {
         case "attack":
+        case "attack-debuff":
+        case "attack-buff":
+        case "drain":
             return "text-red-300";
 
         case "block":
+        case "block-buff":
             return "text-sky-300";
 
         case "heal":
@@ -75,9 +95,13 @@ function getIntentBorderColor(
 ): string {
     switch (intent.type) {
         case "attack":
+        case "attack-debuff":
+        case "attack-buff":
+        case "drain":
             return "border-red-900/70";
 
         case "block":
+        case "block-buff":
             return "border-sky-900/70";
 
         case "heal":
@@ -96,9 +120,13 @@ function getExecutingBorderColor(
 ): string {
     switch (intent.type) {
         case "attack":
+        case "attack-debuff":
+        case "attack-buff":
+        case "drain":
             return "border-red-500/80";
 
         case "block":
+        case "block-buff":
             return "border-sky-400/80";
 
         case "heal":
@@ -117,9 +145,13 @@ function getExecutingShadow(
 ): string {
     switch (intent.type) {
         case "attack":
+        case "attack-debuff":
+        case "attack-buff":
+        case "drain":
             return "shadow-[0_0_30px_rgba(220,38,38,0.25)]";
 
         case "block":
+        case "block-buff":
             return "shadow-[0_0_30px_rgba(56,189,248,0.2)]";
 
         case "heal":
@@ -140,8 +172,20 @@ function getExecutingLabel(
         case "attack":
             return "Attacking";
 
+        case "attack-debuff":
+            return "Striking & Weakening";
+
+        case "attack-buff":
+            return "Striking & Enraging";
+
+        case "drain":
+            return "Draining";
+
         case "block":
             return "Defending";
+
+        case "block-buff":
+            return "Fortifying";
 
         case "heal":
             return "Recovering";
@@ -161,8 +205,20 @@ function getIntentAmount(
         case "attack":
             return `${intent.damage} Damage`;
 
+        case "attack-debuff":
+            return `${intent.damage} Damage + ${intent.amount}% Weak`;
+
+        case "attack-buff":
+            return `${intent.damage} Damage +${intent.amount} Strength`;
+
+        case "drain":
+            return `${intent.damage} Damage / +${intent.heal} HP`;
+
         case "block":
             return `${intent.amount} Block`;
+
+        case "block-buff":
+            return `${intent.block} Block +${intent.strength} Strength`;
 
         case "heal":
             return `${intent.amount} HP`;

@@ -2,9 +2,11 @@ import { achievements } from "../data/achievements";
 import { starterDeck } from "../data/deck";
 import { cards } from "../data/cards";
 import { relics } from "../data/relics";
-import type { RunResult } from "../types/game";
+import type { CardRarity, RunResult } from "../types/game";
+import { MAX_DECK_SIZE, MIN_DECK_SIZE } from "../consts/game";
 import type {
     AchievementState,
+    CardPackOpenResult,
     HubUpgradeState,
     MetaProgressState,
 } from "../types/meta";
@@ -13,7 +15,33 @@ const META_STORAGE_KEY =
     "the-hollow-crown-meta";
 
 export const CARD_PACK_COST = 50;
-export const CARD_PACK_SIZE = 3;
+export const CARD_PACK_SIZE = 5;
+
+export const MAX_CARD_COPIES = 2;
+
+export const CARD_DUST_BY_RARITY: Record<CardRarity, number> = {
+    common: 10,
+    uncommon: 25,
+    rare: 75,
+    legendary: 200,
+};
+
+export const CARD_CRAFT_COST_BY_RARITY: Record<CardRarity, number> = {
+    common: 40,
+    uncommon: 100,
+    rare: 300,
+    legendary: 800,
+};
+
+export const CARD_PACK_RARITY_WEIGHTS: Array<{
+    rarity: CardRarity;
+    weight: number;
+}> = [
+    { rarity: "common", weight: 68 },
+    { rarity: "uncommon", weight: 25 },
+    { rarity: "rare", weight: 6.5 },
+    { rarity: "legendary", weight: 0.5 },
+];
 
 export const MAX_HP_UPGRADE_ID = "max-hp";
 export const BASE_ACTIONS_UPGRADE_ID = "base-actions";
@@ -50,6 +78,50 @@ function createInitialCollection(): Record<string, number> {
     }
 
     return collection;
+}
+
+function getStarterDeckIds(): string[] {
+    return starterDeck.map((card) => card.cardId);
+}
+
+function sanitizeSavedDeck(
+    savedDeck: unknown,
+    collection: Record<string, number>,
+): string[] {
+    if (!Array.isArray(savedDeck)) {
+        return getStarterDeckIds();
+    }
+
+    const uniqueIds: string[] = [];
+
+    for (const value of savedDeck) {
+        if (typeof value !== "string") {
+            continue;
+        }
+
+        if (uniqueIds.includes(value)) {
+            continue;
+        }
+
+        if (!cards.some((card) => card.id === value)) {
+            continue;
+        }
+
+        if ((collection[value] ?? 0) <= 0) {
+            continue;
+        }
+
+        uniqueIds.push(value);
+    }
+
+    if (
+        uniqueIds.length < MIN_DECK_SIZE ||
+        uniqueIds.length > MAX_DECK_SIZE
+    ) {
+        return getStarterDeckIds();
+    }
+
+    return uniqueIds;
 }
 
 function getUpgradeProgressLevel(
@@ -130,6 +202,9 @@ export function createDefaultMetaProgress(): MetaProgressState {
         unlockedRelicIds: ["molten-heart"],
         cardCollection:
             createInitialCollection(),
+        dust: 0,
+        savedDeck: getStarterDeckIds(),
+        completedDungeonIds: [],
     };
 }
 
@@ -178,6 +253,24 @@ export function loadMetaProgress(): MetaProgressState {
                     "object"
                     ? parsed.cardCollection
                     : fallback.cardCollection,
+            dust:
+                typeof parsed.dust === "number"
+                    ? Math.max(0, parsed.dust)
+                    : fallback.dust,
+            savedDeck: sanitizeSavedDeck(
+                parsed.savedDeck,
+                parsed.cardCollection &&
+                typeof parsed.cardCollection === "object"
+                    ? parsed.cardCollection
+                    : fallback.cardCollection,
+            ),
+            completedDungeonIds:
+                Array.isArray(parsed.completedDungeonIds)
+                    ? parsed.completedDungeonIds.filter(
+                          (id): id is string =>
+                              typeof id === "string",
+                      )
+                    : fallback.completedDungeonIds,
         };
 
         const synced =
@@ -331,6 +424,7 @@ export function completeRunInMetaProgress(
     result: RunResult,
     runGold: number,
     bossEnemyId?: string,
+    dungeonId?: string,
 ): MetaProgressState {
     let nextState: MetaProgressState = {
         ...state,
@@ -354,6 +448,22 @@ export function completeRunInMetaProgress(
             nextState,
             "first-descent",
         );
+    }
+
+    if (result === "victory" && dungeonId) {
+        const completedDungeonIds = nextState.completedDungeonIds.includes(
+            dungeonId,
+        )
+            ? nextState.completedDungeonIds
+            : [
+                  ...nextState.completedDungeonIds,
+                  dungeonId,
+              ];
+
+        nextState = {
+            ...nextState,
+            completedDungeonIds,
+        };
     }
 
     if (bossEnemyId) {
@@ -403,12 +513,41 @@ export function spendHubGold(
     return nextState;
 }
 
+function pickWeightedCardRarity(): CardRarity {
+    const totalWeight = CARD_PACK_RARITY_WEIGHTS.reduce(
+        (total, entry) => total + entry.weight,
+        0,
+    );
+
+    let roll = Math.random() * totalWeight;
+
+    for (const entry of CARD_PACK_RARITY_WEIGHTS) {
+        roll -= entry.weight;
+        if (roll < 0) {
+            return entry.rarity;
+        }
+    }
+
+    return "common";
+}
+
+function drawRandomCardByRarity(rarity: CardRarity) {
+    const pool = cards.filter(
+        (card) => card.rarity === rarity,
+    );
+
+    const fallbackPool = pool.length > 0
+        ? pool
+        : cards.filter((card) => card.rarity === "common");
+
+    return fallbackPool[
+        Math.floor(Math.random() * fallbackPool.length)
+    ];
+}
+
 export function openCardPack(
     state: MetaProgressState,
-): {
-    state: MetaProgressState;
-    cardIds: string[];
-} | null {
+): CardPackOpenResult | null {
     const paidState = spendHubGold(
         state,
         CARD_PACK_COST,
@@ -418,45 +557,136 @@ export function openCardPack(
         return null;
     }
 
-    const cardIds: string[] = [];
+    const openedCards: CardPackOpenResult["cards"] = [];
     const collection = {
         ...paidState.cardCollection,
     };
+    let dustGained = 0;
 
     for (
         let index = 0;
         index < CARD_PACK_SIZE;
         index += 1
     ) {
-        const card = cards[
-            Math.floor(
-                Math.random() *
-                    cards.length,
-            )
-        ];
+        const rarity = pickWeightedCardRarity();
+        const card = drawRandomCardByRarity(rarity);
 
         if (!card) {
             continue;
         }
 
-        cardIds.push(card.id);
-        collection[card.id] =
-            (collection[card.id] ?? 0) +
-            1;
+        const currentCopies = collection[card.id] ?? 0;
+        const isDuplicate = currentCopies >= MAX_CARD_COPIES;
+        const cardDust = isDuplicate
+            ? CARD_DUST_BY_RARITY[card.rarity]
+            : 0;
+
+        if (isDuplicate) {
+            dustGained += cardDust;
+        } else {
+            collection[card.id] = currentCopies + 1;
+        }
+
+        openedCards.push({
+            cardId: card.id,
+            rarity: card.rarity,
+            isDuplicate,
+            dustGained: cardDust,
+        });
     }
 
     const nextState: MetaProgressState = {
         ...paidState,
-        cardCollection:
-            collection,
+        cardCollection: collection,
+        dust: paidState.dust + dustGained,
     };
 
     saveMetaProgress(nextState);
 
     return {
         state: nextState,
-        cardIds,
+        cards: openedCards,
+        dustGained,
     };
+}
+
+export function saveDeckToMeta(
+    state: MetaProgressState,
+    cardIds: string[],
+): MetaProgressState | null {
+    const uniqueIds = [...new Set(cardIds)];
+
+    if (
+        uniqueIds.length < MIN_DECK_SIZE ||
+        uniqueIds.length > MAX_DECK_SIZE
+    ) {
+        return null;
+    }
+
+    const valid = uniqueIds.every((cardId) =>
+        cards.some((card) => card.id === cardId) &&
+        (state.cardCollection[cardId] ?? 0) > 0,
+    );
+
+    if (!valid) {
+        return null;
+    }
+
+    const nextState: MetaProgressState = {
+        ...state,
+        savedDeck: uniqueIds,
+    };
+
+    saveMetaProgress(nextState);
+    return nextState;
+}
+
+export function getCardCraftCost(cardId: string): number | null {
+    const card = cards.find(
+        (definition) => definition.id === cardId,
+    );
+
+    return card
+        ? CARD_CRAFT_COST_BY_RARITY[card.rarity]
+        : null;
+}
+
+export function craftCard(
+    state: MetaProgressState,
+    cardId: string,
+): MetaProgressState | null {
+    const card = cards.find(
+        (definition) => definition.id === cardId,
+    );
+
+    if (!card) {
+        return null;
+    }
+
+    const currentCopies =
+        state.cardCollection[cardId] ?? 0;
+    const cost =
+        CARD_CRAFT_COST_BY_RARITY[card.rarity];
+
+    if (
+        currentCopies >= MAX_CARD_COPIES ||
+        state.dust < cost
+    ) {
+        return null;
+    }
+
+    const nextState: MetaProgressState = {
+        ...state,
+        dust: state.dust - cost,
+        cardCollection: {
+            ...state.cardCollection,
+            [cardId]: currentCopies + 1,
+        },
+    };
+
+    saveMetaProgress(nextState);
+
+    return nextState;
 }
 
 export function unlockRelic(

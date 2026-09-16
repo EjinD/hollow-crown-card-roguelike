@@ -162,7 +162,8 @@ export default function CombatTable({
                 <Hand
                     cards={hand}
                     disabled={
-                        !isPlayerTurn
+                        !isPlayerTurn ||
+                        actions <= 0
                     }
                     onPlayCard={
                         onPlayCard

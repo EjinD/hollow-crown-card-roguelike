@@ -1,4 +1,5 @@
 import type { MapNode } from "../types/game";
+import { getFloorIndex } from "../data/map";
 
 export interface MapPosition {
     left: string;
@@ -10,24 +11,8 @@ export interface MapCoordinates {
     y: number;
 }
 
-const LAYER_X_POSITIONS: Record<number, number> = {
-    1: 10,
-    2: 30,
-    3: 50,
-    4: 70,
-    5: 90,
-};
-
-export function getLayerIndex(
-    nodeId: string,
-): number {
-    const match = nodeId.match(
-        /^layer-(\d+)-/,
-    );
-
-    return match
-        ? Number(match[1])
-        : 0;
+export function getLayerIndex(nodeId: string): number {
+    return getFloorIndex(nodeId);
 }
 
 export function getNodesByLayer(
@@ -35,64 +20,63 @@ export function getNodesByLayer(
     layerIndex: number,
 ): MapNode[] {
     return nodes.filter(
-        (node) =>
-            getLayerIndex(node.id) ===
-            layerIndex,
+        (node) => getLayerIndex(node.id) === layerIndex,
     );
+}
+
+function getLayerX(nodeIndex: number, layerSize: number): number {
+    if (layerSize <= 1) {
+        return 50;
+    }
+
+    if (layerSize === 2) {
+        return nodeIndex === 0 ? 30 : 70;
+    }
+
+    const slots = [18, 50, 82];
+    return slots[Math.min(nodeIndex, slots.length - 1)];
 }
 
 export function getMapCoordinates(
     node: MapNode,
     nodes: MapNode[],
 ): MapCoordinates {
-    const layerIndex =
-        getLayerIndex(node.id);
+    const floor = getLayerIndex(node.id);
+    const floors = nodes.map((item) => getLayerIndex(item.id));
+    const floorCount = Math.max(...floors, 1);
+    const layerNodes = getNodesByLayer(nodes, floor);
+    const nodeIndex = layerNodes.findIndex(
+        (item) => item.id === node.id,
+    );
 
-    const layerNodes =
-        getNodesByLayer(
-            nodes,
-            layerIndex,
-        );
+    // Floor 1 is the top of the descent. The boss is physically lower.
+    const progress =
+        floorCount <= 1
+            ? 0
+            : (floor - 1) / (floorCount - 1);
 
-    const nodeIndex =
-        layerNodes.findIndex(
-            (layerNode) =>
-                layerNode.id === node.id,
-        );
+    const x = getLayerX(
+        Math.max(nodeIndex, 0),
+        layerNodes.length,
+    );
 
-    const x =
-        LAYER_X_POSITIONS[
-            layerIndex
-        ] ?? 50;
+    const y = 4 + progress * 92;
 
-    const y =
-        layerNodes.length <= 1
-            ? 50
-            : 20 +
-              (nodeIndex /
-                  (layerNodes.length - 1)) *
-                  60;
-
-    return {
-        x,
-        y,
-    };
+    return { x, y };
 }
 
 export function getMapPosition(
     node: MapNode,
     nodes: MapNode[],
 ): MapPosition {
-    const {
-        x,
-        y,
-    } = getMapCoordinates(
-        node,
-        nodes,
-    );
+    const { x, y } = getMapCoordinates(node, nodes);
 
     return {
         left: `${x}%`,
         top: `${y}%`,
     };
+}
+
+export function getMapCanvasHeight(floorCount: number): number {
+    return Math.max(2200, floorCount * 175 + 140);
 }

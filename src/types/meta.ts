@@ -18,4 +18,20 @@ export interface MetaProgressState {
     upgrades: HubUpgradeState[];
     unlockedRelicIds: string[];
     cardCollection: Record<string, number>;
+    dust: number;
+    savedDeck: string[];
+    completedDungeonIds: string[];
+}
+
+export interface PackCardResult {
+    cardId: string;
+    rarity: "common" | "uncommon" | "rare" | "legendary";
+    isDuplicate: boolean;
+    dustGained: number;
+}
+
+export interface CardPackOpenResult {
+    state: MetaProgressState;
+    cards: PackCardResult[];
+    dustGained: number;
 }

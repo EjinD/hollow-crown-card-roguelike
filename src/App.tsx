@@ -25,8 +25,11 @@ import {
     selectNextNode,
     triggerCurrentEvent,
     buyShopCard,
+    buyShopRelic,
     healAtShop,
+    removeCardAtShop,
     completeCurrentShop,
+    resolveRest,
 } from "./state/run";
 
 import {
@@ -35,39 +38,52 @@ import {
     getUnlockedRelicIds,
     loadMetaProgress,
     openCardPack,
+    craftCard,
     purchaseHubUpgrade,
+    saveDeckToMeta,
 } from "./state/meta-state";
 
 import { events } from "./data/events";
+import { getDungeonById, isDungeonUnlocked } from "./data/dungeons";
 import { MAX_DECK_SIZE } from "./consts/game";
 
 import StarterScreen from "./components/StarterScreen";
 import LandingScreen from "./components/LandingScreen";
 import HubScreen from "./components/HubScreen";
-import CardVaultScreen from "./components/CardVaultScreen";
+import CardPacksScreen from "./components/CardPacksScreen";
+import CollectionScreen from "./components/CollectionScreen";
 import ArmoryScreen from "./components/ArmoryScreen";
 import MapScreen from "./components/mapScreen";
 import CombatScreen from "./components/CombatScreen";
 import RewardScreen from "./components/RewardScreen";
 import EventScreen from "./components/EventScreen";
 import ShopScreen from "./components/ShopScreen";
+import RestScreen from "./components/RestScreen";
 import GameOverScreen from "./components/GameOverScreen";
+import DungeonGateScreen from "./components/DungeonGateScreen";
 
 type GameScreen =
     | "landing"
     | "hub"
-    | "card-vault"
+    | "dungeon-gate"
+    | "packs"
+    | "collection"
     | "armory"
     | "map"
     | "combat"
     | "reward"
     | "event"
     | "shop"
+    | "rest"
     | "game-over";
 
 type EnemyAction =
     | "attack"
+    | "attack-debuff"
+    | "attack-buff"
+    | "drain"
     | "block"
+    | "block-buff"
     | "heal"
     | "buff"
     | "debuff"
@@ -87,30 +103,15 @@ const ENEMY_ACTION_TIMING: Record<
     EnemyActionType,
     EnemyActionTiming
 > = {
-    attack: {
-        duration: 520,
-        impact: 285,
-    },
-
-    block: {
-        duration: 520,
-        impact: 285,
-    },
-
-    heal: {
-        duration: 650,
-        impact: 225,
-    },
-
-    buff: {
-        duration: 650,
-        impact: 225,
-    },
-
-    debuff: {
-        duration: 650,
-        impact: 355,
-    },
+    attack: { duration: 520, impact: 285 },
+    "attack-debuff": { duration: 650, impact: 355 },
+    "attack-buff": { duration: 650, impact: 225 },
+    drain: { duration: 650, impact: 225 },
+    block: { duration: 520, impact: 285 },
+    "block-buff": { duration: 650, impact: 225 },
+    heal: { duration: 650, impact: 225 },
+    buff: { duration: 650, impact: 225 },
+    debuff: { duration: 650, impact: 355 },
 };
 
 function getEnemyActionTiming(
@@ -214,16 +215,28 @@ export default function App() {
         setMeta(nextState);
     }
 
-    function handleStartRun() {
-        setScreen("map");
+    function handleOpenDungeonGate() {
+        setScreen("dungeon-gate");
+    }
+
+    function handleSelectDungeon(dungeonId: string) {
+        const dungeon = getDungeonById(dungeonId);
+
+        if (!dungeon || !isDungeonUnlocked(dungeon, meta)) {
+            return;
+        }
+
         setRun(
             startRun(
                 getUnlockedRelicIds(meta),
                 meta.upgrades,
+                meta.savedDeck,
+                dungeon.id,
             ),
         );
         setCombat(null);
         clearEnemyAnimation();
+        setScreen("map");
     }
 
     function handleEnterCurrentNode() {
@@ -259,10 +272,15 @@ export default function App() {
 
         if (currentNode.type === "shop") {
             setScreen("shop");
+            return;
+        }
+
+        if (currentNode.type === "rest") {
+            setScreen("rest");
         }
     }
 
-    function handleRestart() {
+    function handleReturnToHub() {
         if (intentTimerRef.current !== null) {
             window.clearTimeout(
                 intentTimerRef.current,
@@ -284,12 +302,6 @@ export default function App() {
             );
         }
 
-        setRun(
-            startRun(
-                getUnlockedRelicIds(meta),
-                meta.upgrades,
-            ),
-        );
         setCombat(null);
         clearEnemyAnimation();
         setScreen("hub");
@@ -343,6 +355,11 @@ export default function App() {
 
         if (node.type === "shop") {
             setScreen("shop");
+            return;
+        }
+
+        if (node.type === "rest") {
+            setScreen("rest");
         }
     }
 
@@ -375,26 +392,13 @@ export default function App() {
                     meta,
                     "defeat",
                     nextRun.gold,
+                    undefined,
+                    nextRun.dungeonId,
                 );
 
             setMeta(syncedMeta);
             setScreen("game-over");
             return;
-        }
-
-        if (
-            nextRun.status === "completed" &&
-            nextRun.result === "victory"
-        ) {
-            const syncedMeta =
-                completeRunInMetaProgress(
-                    meta,
-                    "victory",
-                    nextRun.gold,
-                    combatState.enemy.definitionId,
-                );
-
-            setMeta(syncedMeta);
         }
 
         setScreen("reward");
@@ -405,6 +409,7 @@ export default function App() {
     ) {
         if (
             !combat ||
+            combat.player.actions <= 0 ||
             isEnemyTurnAnimating ||
             isEnemyAttacking
         ) {
@@ -519,9 +524,7 @@ export default function App() {
     }
 
     function handleClaimRelicReward() {
-        const nextRun = claimRelicReward(
-            run,
-        );
+        const nextRun = claimRelicReward(run);
 
         setRun(nextRun);
 
@@ -529,6 +532,17 @@ export default function App() {
             nextRun.status === "completed" &&
             nextRun.result === "victory"
         ) {
+            const syncedMeta =
+                completeRunInMetaProgress(
+                    meta,
+                    "victory",
+                    nextRun.gold,
+                    combat?.enemy.definitionId,
+                    nextRun.dungeonId,
+                );
+
+            setMeta(syncedMeta);
+            setCombat(null);
             setScreen("game-over");
             return;
         }
@@ -547,6 +561,16 @@ export default function App() {
         setRun(nextRun);
     }
 
+    function handleBuyShopRelic(relicId: string) {
+        const nextRun = buyShopRelic(run, relicId);
+        setRun(nextRun);
+    }
+
+    function handleRemoveCardAtShop(cardId: string) {
+        const nextRun = removeCardAtShop(run, cardId);
+        setRun(nextRun);
+    }
+
     function handleHeal() {
         const nextRun = healAtShop(run);
 
@@ -558,6 +582,33 @@ export default function App() {
             run,
         );
 
+        setRun(nextRun);
+        setScreen("map");
+    }
+
+    function handleRestRecover() {
+        const nextRun = resolveRest(run, "recover");
+        if (nextRun === run) {
+            return;
+        }
+        setRun(nextRun);
+        setScreen("map");
+    }
+
+    function handleRestPurge(cardId: string) {
+        const nextRun = resolveRest(run, "purge", cardId);
+        if (nextRun === run) {
+            return;
+        }
+        setRun(nextRun);
+        setScreen("map");
+    }
+
+    function handleRestSacrifice() {
+        const nextRun = resolveRest(run, "sacrifice");
+        if (nextRun === run) {
+            return;
+        }
         setRun(nextRun);
         setScreen("map");
     }
@@ -605,6 +656,26 @@ export default function App() {
     const currentEvent = getCurrentEvent();
     const currentShop = getCurrentShop();
 
+    const currentMapNode =
+        run.map.nodes.find(
+            (node) =>
+                node.id === run.map.currentNodeId,
+        );
+
+    const currentFloor = (() => {
+        const match = currentMapNode?.id.match(
+            /floor-(\d+)/,
+        );
+
+        return match
+            ? Number(match[1])
+            : 1;
+    })();
+
+    const currentDungeon = getDungeonById(
+        run.dungeonId,
+    );
+
     if (isBooting) {
         return (
             <StarterScreen
@@ -630,10 +701,13 @@ export default function App() {
                     <HubScreen
                         meta={meta}
                         onStartRun={
-                            handleStartRun
+                            handleOpenDungeonGate
                         }
-                        onOpenCardVault={() =>
-                            setScreen("card-vault")
+                        onOpenCardPacks={() =>
+                            setScreen("packs")
+                        }
+                        onOpenCollection={() =>
+                            setScreen("collection")
                         }
                         onOpenArmory={
                             handleOpenArmory
@@ -643,10 +717,19 @@ export default function App() {
                 </>
             )}
 
-            {screen === "card-vault" && (
-                <CardVaultScreen
+            {screen === "dungeon-gate" && (
+                <DungeonGateScreen
                     meta={meta}
-                    onBuyPack={() => {
+                    savedDeckSize={meta.savedDeck.length}
+                    onBack={() => setScreen("hub")}
+                    onSelectDungeon={handleSelectDungeon}
+                />
+            )}
+
+            {screen === "packs" && (
+                <CardPacksScreen
+                    meta={meta}
+                    onOpenPack={() => {
                         const result = openCardPack(meta);
 
                         if (!result) {
@@ -654,14 +737,44 @@ export default function App() {
                         }
 
                         setMeta(result.state);
-                        return result.cardIds;
+                        return result;
                     }}
-                    onClose={() =>
-                        setScreen("hub")
-                    }
+                    onClose={() => setScreen("hub")}
                 />
             )}
 
+            {screen === "collection" && (
+                <CollectionScreen
+                    meta={meta}
+                    onSaveDeck={(cardIds) => {
+                        const result = saveDeckToMeta(
+                            meta,
+                            cardIds,
+                        );
+
+                        if (!result) {
+                            return false;
+                        }
+
+                        setMeta(result);
+                        return true;
+                    }}
+                    onCraftCard={(cardId) => {
+                        const result = craftCard(
+                            meta,
+                            cardId,
+                        );
+
+                        if (!result) {
+                            return false;
+                        }
+
+                        setMeta(result);
+                        return true;
+                    }}
+                    onClose={() => setScreen("hub")}
+                />
+            )}
 
             {screen === "armory" && (
                 <ArmoryScreen
@@ -729,31 +842,56 @@ export default function App() {
                         gold={run.gold}
                         hp={run.hp}
                         maxHp={run.maxHp}
-                        deckSize={run.deck.length}
-                        maxDeckSize={
-                            MAX_DECK_SIZE
+                        cardOffers={
+                            currentShop.shopCardOffers ??
+                            []
                         }
-                        offers={
-                            currentShop.shopOffers ??
+                        relicOffers={
+                            currentShop.shopRelicOffers ??
                             []
                         }
                         healPrice={
                             currentShop.shopHealPrice ??
-                            10
+                            20
                         }
                         healPurchased={
                             currentShop.shopHealPurchased ??
                             false
                         }
+                        removeCardPrice={
+                            currentShop.shopRemoveCardPrice ??
+                            60
+                        }
+                        removeCardPurchased={
+                            currentShop.shopRemoveCardPurchased ??
+                            false
+                        }
+                        deck={run.deck}
+                        relicsOwned={run.relics}
                         onBuyCard={
                             handleBuyShopCard
                         }
+                        onBuyRelic={
+                            handleBuyShopRelic
+                        }
                         onHeal={handleHeal}
+                        onRemoveCard={
+                            handleRemoveCardAtShop
+                        }
                         onLeave={
                             handleLeaveShop
                         }
                     />
                 )}
+
+            {screen === "rest" && (
+                <RestScreen
+                    run={run}
+                    onRecover={handleRestRecover}
+                    onPurge={handleRestPurge}
+                    onSacrifice={handleRestSacrifice}
+                />
+            )}
 
             {screen === "reward" &&
                 run.pendingReward && (
@@ -773,12 +911,17 @@ export default function App() {
                         run.result ??
                         "defeat"
                     }
+                    dungeonId={run.dungeonId}
                     gold={run.gold}
-                    deckSize={
-                        run.deck.length
+                    deckSize={run.deck.length}
+                    currentFloor={currentFloor}
+                    floorCount={
+                        currentDungeon?.floorCount ??
+                        currentFloor
                     }
-                    onRestart={
-                        handleRestart
+                    relicIds={run.relics}
+                    onReturnToHub={
+                        handleReturnToHub
                     }
                 />
             )}

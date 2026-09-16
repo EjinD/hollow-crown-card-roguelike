@@ -1,13 +1,55 @@
 import { useMemo, useState } from "react";
 
 import { cards } from "../data/cards";
+import type { CardRarity } from "../types/game";
 import type { MetaProgressState } from "../types/meta";
-import { CARD_PACK_COST } from "../state/meta-state";
+import {
+    CARD_CRAFT_COST_BY_RARITY,
+    CARD_PACK_COST,
+    MAX_CARD_COPIES,
+} from "../state/meta-state";
 
 interface CardVaultScreenProps {
     meta: MetaProgressState;
     onBuyPack: () => string[] | null;
+    onCraftCard: (cardId: string) => boolean;
     onClose: () => void;
+}
+
+function rarityLabel(rarity: CardRarity): string {
+    return rarity.charAt(0).toUpperCase() + rarity.slice(1);
+}
+
+function rarityClass(rarity: CardRarity): string {
+    switch (rarity) {
+        case "common":
+            return "text-stone-400";
+        case "uncommon":
+            return "text-emerald-400";
+        case "rare":
+            return "text-blue-400";
+        case "legendary":
+            return "text-amber-400";
+    }
+}
+
+function getEffectLabel(
+    effect: (typeof cards)[number]["effects"][number],
+): string {
+    switch (effect.type) {
+        case "damage":
+            return `Damage ${effect.amount}`;
+        case "burn":
+            return `Burn ${effect.amount} / ${effect.duration}`;
+        case "block":
+            return `Block ${effect.amount}`;
+        case "gain-action":
+            return `+${effect.amount} Action`;
+        case "draw":
+            return `Draw ${effect.amount}`;
+        case "heal":
+            return `Heal ${effect.amount}`;
+    }
 }
 
 function shuffle<T>(items: T[]): T[] {
@@ -30,6 +72,7 @@ function shuffle<T>(items: T[]): T[] {
 export default function CardVaultScreen({
     meta,
     onBuyPack,
+    onCraftCard,
     onClose,
 }: CardVaultScreenProps) {
     const [lastPack, setLastPack] = useState<string[]>([]);
@@ -54,6 +97,20 @@ export default function CardVaultScreen({
 
         setLastPack(openedCards);
         setMessage(null);
+    }
+
+    function handleCraft(cardId: string) {
+        const crafted = onCraftCard(cardId);
+        const card = cards.find((item) => item.id === cardId);
+
+        if (!crafted) {
+            setMessage(
+                "Not enough Dust, or this card already has two copies.",
+            );
+            return;
+        }
+
+        setMessage(card ? `Crafted ${card.name}.` : "Card crafted.");
     }
 
     return (
@@ -88,6 +145,15 @@ export default function CardVaultScreen({
 
                         <div className="text-right">
                             <p className="text-[9px] uppercase tracking-[0.3em] text-stone-600">
+                                Dust
+                            </p>
+                            <p className="mt-1 text-lg font-bold text-violet-300">
+                                ◆ {meta.dust}
+                            </p>
+                        </div>
+
+                        <div className="text-right">
+                            <p className="text-[9px] uppercase tracking-[0.3em] text-stone-600">
                                 Hub Gold
                             </p>
                             <p className="mt-1 text-lg font-bold text-amber-400">
@@ -116,7 +182,7 @@ export default function CardVaultScreen({
                                     Ashen Pack
                                 </h3>
                                 <p className="mt-3 text-sm leading-6 text-stone-500">
-                                    Open a pack to receive three random cards from the current collection pool. Duplicate cards increase your permanent collection count.
+                                    Three cards per pack. Rarity is weighted, duplicate copies above two are converted into Dust, and Dust can be used to craft specific cards.
                                 </p>
                             </div>
 
@@ -131,7 +197,7 @@ export default function CardVaultScreen({
                         </div>
 
                         {message && (
-                            <p className="mt-4 text-sm text-red-400">
+                            <p className="mt-4 text-sm text-violet-300">
                                 {message}
                             </p>
                         )}
@@ -151,7 +217,7 @@ export default function CardVaultScreen({
                             </div>
 
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                {lastPack.map((cardId) => {
+                                {lastPack.map((cardId, index) => {
                                     const card = cards.find(
                                         (definition) =>
                                             definition.id === cardId,
@@ -163,36 +229,17 @@ export default function CardVaultScreen({
 
                                     return (
                                         <div
-                                            key={cardId}
+                                            key={`${cardId}-${index}`}
                                             className="border border-orange-900/40 bg-[#120d0a] p-6"
                                         >
-                                            <p className="text-[9px] uppercase tracking-[0.3em] text-orange-700">
-                                                Acquired
+                                            <p className={`text-[9px] uppercase tracking-[0.3em] ${rarityClass(card.rarity)}`}>
+                                                {rarityLabel(card.rarity)}
                                             </p>
                                             <h4 className="mt-2 font-serif text-xl font-bold text-stone-100">
                                                 {card.name}
                                             </h4>
                                             <p className="mt-2 text-xs text-stone-500">
-                                                {card.effects
-                                                    .map((effect) => {
-                                                        if (effect.type === "damage") {
-                                                            return `Damage ${effect.amount}`;
-                                                        }
-                                                        if (effect.type === "burn") {
-                                                            return `Burn ${effect.amount} / ${effect.duration}`;
-                                                        }
-                                                        if (effect.type === "block") {
-                                                            return `Block ${effect.amount}`;
-                                                        }
-                                                        if (effect.type === "gain-action") {
-                                                            return `+${effect.amount} Action`;
-                                                        }
-                                                        if (effect.type === "draw") {
-                                                            return `Draw ${effect.amount}`;
-                                                        }
-                                                        return `Heal ${effect.amount}`;
-                                                    })
-                                                    .join(" · ")}
+                                                {card.effects.map(getEffectLabel).join(" · ")}
                                             </p>
                                         </div>
                                     );
@@ -217,6 +264,10 @@ export default function CardVaultScreen({
                             {shuffle(cards).map((card) => {
                                 const count =
                                     meta.cardCollection[card.id] ?? 0;
+                                const craftCost =
+                                    CARD_CRAFT_COST_BY_RARITY[
+                                        card.rarity
+                                    ];
 
                                 return (
                                     <div
@@ -224,9 +275,14 @@ export default function CardVaultScreen({
                                         className="border border-stone-800 bg-[#100c09] p-4"
                                     >
                                         <div className="flex items-start justify-between gap-3">
-                                            <h4 className="font-serif text-base font-bold text-stone-100">
-                                                {card.name}
-                                            </h4>
+                                            <div>
+                                                <p className={`text-[8px] uppercase tracking-[0.25em] ${rarityClass(card.rarity)}`}>
+                                                    {rarityLabel(card.rarity)}
+                                                </p>
+                                                <h4 className="mt-1 font-serif text-base font-bold text-stone-100">
+                                                    {card.name}
+                                                </h4>
+                                            </div>
 
                                             <span
                                                 className={[
@@ -236,32 +292,27 @@ export default function CardVaultScreen({
                                                         : "text-stone-700",
                                                 ].join(" ")}
                                             >
-                                                ×{count}
+                                                ×{count}/{MAX_CARD_COPIES}
                                             </span>
                                         </div>
 
-                                        <p className="mt-3 text-[10px] leading-5 text-stone-600">
-                                            {card.effects
-                                                .map((effect) => {
-                                                    if (effect.type === "damage") {
-                                                        return `Damage ${effect.amount}`;
-                                                    }
-                                                    if (effect.type === "burn") {
-                                                        return `Burn ${effect.amount}`;
-                                                    }
-                                                    if (effect.type === "block") {
-                                                        return `Block ${effect.amount}`;
-                                                    }
-                                                    if (effect.type === "gain-action") {
-                                                        return `+Action`;
-                                                    }
-                                                    if (effect.type === "draw") {
-                                                        return `Draw`;
-                                                    }
-                                                    return `Heal`;
-                                                })
-                                                .join(" · ")}
+                                        <p className="mt-3 min-h-[34px] text-[10px] leading-5 text-stone-600">
+                                            {card.effects.map(getEffectLabel).join(" · ")}
                                         </p>
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleCraft(card.id)
+                                            }
+                                            disabled={
+                                                count >= MAX_CARD_COPIES ||
+                                                meta.dust < craftCost
+                                            }
+                                            className="mt-4 w-full border border-violet-900/60 bg-violet-950/20 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.2em] text-violet-300 transition hover:border-violet-600 disabled:cursor-not-allowed disabled:opacity-30"
+                                        >
+                                            Craft · {craftCost} Dust
+                                        </button>
                                     </div>
                                 );
                             })}

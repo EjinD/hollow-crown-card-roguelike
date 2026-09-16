@@ -107,6 +107,27 @@ describe("Combat", () => {
     expect(nextState).toEqual(stateWithoutActions);
   });
 
+  it("should show a temporary Strength Down status when enemy Strength is reduced", () => {
+    const state = {
+      ...createCombat(),
+      enemy: {
+        ...createCombat().enemy,
+        strength: 3,
+      },
+    };
+
+    const nextState = applyCardEffects(state, [
+      { type: "reduce-strength", amount: 2 },
+    ]);
+
+    expect(nextState.enemy.strength).toBe(1);
+    expect(nextState.enemy.statusEffects).toContainEqual({
+      type: "strength-down",
+      amount: 2,
+      duration: 1,
+    });
+  });
+
   it("should not allow playing a card during enemy turn", () => {
     const state = createCombat();
 
@@ -472,12 +493,12 @@ it("should apply burn to the enemy", () => {
         },
     ]);
 });
-it("should deal burn damage at the end of the turn", () => {
+it("should deal burn damage at the start of the enemy turn", () => {
     const state = createCombat();
 
     const burnState = {
         ...state,
-        phase: "end-turn" as const,
+        phase: "enemy-turn" as const,
         enemy: {
             ...state.enemy,
             hp: 15,
@@ -485,22 +506,22 @@ it("should deal burn damage at the end of the turn", () => {
                 {
                     type: "burn" as const,
                     amount: 3,
-                    duration: 2
+                    duration: 2,
                 },
             ],
         },
     };
 
-    const nextState = processEndTurn(burnState);
+    const nextState = executeEnemyIntent(burnState);
 
     expect(nextState.enemy.hp).toBe(12);
 });
-it("should reduce burn duration at the end of the turn", () => {
+it("should reduce burn duration when the enemy turn starts", () => {
     const state = createCombat();
 
     const burnState = {
         ...state,
-        phase: "end-turn" as const,
+        phase: "enemy-turn" as const,
         enemy: {
             ...state.enemy,
             statusEffects: [
@@ -513,7 +534,7 @@ it("should reduce burn duration at the end of the turn", () => {
         },
     };
 
-    const nextState = processEndTurn(burnState);
+    const nextState = executeEnemyIntent(burnState);
 
     expect(nextState.enemy.statusEffects).toEqual([
         {
@@ -523,14 +544,15 @@ it("should reduce burn duration at the end of the turn", () => {
         },
     ]);
 });
-it("should remove burn when duration reaches zero", () => {
+it("should remove burn after it ticks on an enemy turn", () => {
     const state = createCombat();
 
     const burnState = {
         ...state,
-        phase: "end-turn" as const,
+        phase: "enemy-turn" as const,
         enemy: {
             ...state.enemy,
+            hp: 15,
             statusEffects: [
                 {
                     type: "burn" as const,
@@ -541,7 +563,7 @@ it("should remove burn when duration reaches zero", () => {
         },
     };
 
-    const nextState = processEndTurn(burnState);
+    const nextState = executeEnemyIntent(burnState);
 
     expect(nextState.enemy.statusEffects).toEqual([]);
 });
@@ -572,12 +594,12 @@ it("should stack multiple burn effects", () => {
 
     expect(burnState.enemy.statusEffects).toHaveLength(2);
 });
-it("should deal combined damage from multiple burn effects", () => {
+it("should deal combined burn damage at the start of the enemy turn", () => {
     const state = createCombat();
 
     const burnState = {
         ...state,
-        phase: "end-turn" as const,
+        phase: "enemy-turn" as const,
         enemy: {
             ...state.enemy,
             hp: 15,
@@ -596,7 +618,7 @@ it("should deal combined damage from multiple burn effects", () => {
         },
     };
 
-    const nextState = processEndTurn(burnState);
+    const nextState = executeEnemyIntent(burnState);
 
     expect(nextState.enemy.hp).toBe(9);
 });
@@ -725,12 +747,12 @@ it("should fully absorb damage with enemy block", () => {
     expect(nextState.player.actions).toBe(0);
     expect(nextState.phase).toBe("enemy-turn");
 });
-it("should win if burn kills enemy at end of turn", () => {
+it("should win before the enemy acts if burn kills it at the start of the enemy turn", () => {
     const state = createCombat();
 
     const burningState = {
         ...state,
-        phase: "end-turn" as const,
+        phase: "enemy-turn" as const,
         enemy: {
             ...state.enemy,
             hp: 3,
@@ -744,7 +766,7 @@ it("should win if burn kills enemy at end of turn", () => {
         },
     };
 
-    const nextState = processEndTurn(burningState);
+    const nextState = executeEnemyIntent(burningState);
 
     expect(nextState.enemy.hp).toBe(0);
     expect(nextState.phase).toBe("victory");
@@ -900,12 +922,12 @@ it("should not execute enemy intent twice in the same turn", () => {
 
     expect(afterSecondIntent).toEqual(afterFirstIntent);
 });
-it("should not process end turn after burn victory", () => {
+it("should not execute the enemy after burn victory", () => {
     const state = createCombat();
 
     const burningState = {
         ...state,
-        phase: "end-turn" as const,
+        phase: "enemy-turn" as const,
         enemy: {
             ...state.enemy,
             hp: 3,
@@ -919,8 +941,8 @@ it("should not process end turn after burn victory", () => {
         },
     };
 
-    const victoryState = processEndTurn(burningState);
-    const afterSecondProcess = processEndTurn(victoryState);
+    const victoryState = executeEnemyIntent(burningState);
+    const afterSecondProcess = executeEnemyIntent(victoryState);
 
     expect(victoryState.phase).toBe("victory");
     expect(afterSecondProcess).toEqual(victoryState);
@@ -1452,7 +1474,7 @@ it("should continue drawing from discard pile when draw pile runs out", () => {
     expect(result.player.drawPile).toHaveLength(0);
     expect(result.player.discardPile).toEqual([]);
 });
-it("should process exiled cards and return ready cards to hand", () => {
+it("should process exiled cards and return ready cards to the draw pile", () => {
     const state = createCombat();
 
     const player: PlayerState = {
@@ -1476,8 +1498,9 @@ it("should process exiled cards and return ready cards to hand", () => {
     ]);
 
     expect(result.hand).toEqual([]);
+    expect(result.drawPile).toEqual([]);
 });
-it("should return an exiled card to hand when cooldown reaches zero", () => {
+it("should return an exiled card to the draw pile when cooldown reaches zero", () => {
     const state = createCombat();
 
     const player: PlayerState = {
@@ -1495,14 +1518,15 @@ it("should return an exiled card to hand when cooldown reaches zero", () => {
 
     expect(result.exiledCards).toEqual([]);
 
-    expect(result.hand).toEqual([
+    expect(result.hand).toEqual([]);
+    expect(result.drawPile).toEqual([
         {
             cardId: "flame-burst",
             cooldownRemaining: 0,
         },
     ]);
 });
-it("should return a cooldown card to hand after cooldown expires", () => {
+it("should return a cooldown card to the draw pile after cooldown expires", () => {
     const state = createCombat();
 
     const afterPlay = playCard(
@@ -1538,8 +1562,13 @@ it("should return a cooldown card to hand after cooldown expires", () => {
     );
 
     expect(
-        afterSecondEndTurn.player.hand,
+        afterSecondEndTurn.player.drawPile,
     ).toContainEqual({
+        cardId: "flame-burst",
+        cooldownRemaining: 0,
+    });
+
+    expect(afterSecondEndTurn.player.exiledCards).not.toContainEqual({
         cardId: "flame-burst",
         cooldownRemaining: 0,
     });
@@ -1576,25 +1605,91 @@ it("should not draw more cards when hand is full", () => {
 
     expect(afterEndTurn.player.hand.length).toBeLessThanOrEqual(5);
 });
-it("should return a cooldown card with priority when hand is full", () => {
+it("should return a cooldown card to the draw pile even when the hand is full", () => {
     const state = createCombat();
 
     const afterPlay = playCard(state, "flame-burst");
-
     const afterFirstEnemyAttack = executeEnemyIntent(afterPlay);
     const afterFirstEndTurn = processEndTurn(afterFirstEnemyAttack);
-
     const afterSecondEnemyAttack = executeEnemyIntent({
         ...afterFirstEndTurn,
         phase: "enemy-turn",
     });
-
     const afterSecondEndTurn = processEndTurn(afterSecondEnemyAttack);
 
-    expect(afterSecondEndTurn.player.hand).toContainEqual({
+    expect(afterSecondEndTurn.player.hand.length).toBeLessThanOrEqual(5);
+    expect(afterSecondEndTurn.player.drawPile).toContainEqual({
         cardId: "flame-burst",
         cooldownRemaining: 0,
     });
+    expect(afterSecondEndTurn.player.exhaustedCards).toEqual([]);
+});
 
-    expect(afterSecondEndTurn.player.hand.length).toBeLessThanOrEqual(5);
+it("should exhaust a card explicitly marked as exhaust", () => {
+    const state = createCombat();
+    const playerWithCard = addCardToHand(
+        state,
+        "ashbound-offering",
+    );
+
+    const result = playCard(
+        playerWithCard,
+        "ashbound-offering",
+    );
+
+    expect(result.player.hand).not.toContainEqual({
+        cardId: "ashbound-offering",
+        cooldownRemaining: 0,
+    });
+    expect(result.player.exhaustedCards).toContainEqual({
+        cardId: "ashbound-offering",
+        cooldownRemaining: 0,
+    });
+});
+
+it("should recover one exiled card into the draw pile", () => {
+    const state = createCombat();
+    const player = {
+        ...state.player,
+        hand: [
+            { cardId: "ash-recall", cooldownRemaining: 0 },
+        ],
+        exiledCards: [
+            { cardId: "flame-burst", cooldownRemaining: 2 },
+            { cardId: "inferno", cooldownRemaining: 3 },
+        ],
+    };
+
+    const result = playCard({ ...state, player }, "ash-recall");
+
+    expect(result.player.exiledCards).toEqual([
+        { cardId: "inferno", cooldownRemaining: 3 },
+    ]);
+    expect(result.player.drawPile).toContainEqual({
+        cardId: "flame-burst",
+        cooldownRemaining: 0,
+    });
+});
+it("should fully cleanse all Weak from the player", () => {
+    const state = startCombat("goblin");
+    const weakened = {
+        ...state,
+        player: {
+            ...state.player,
+            actions: 1,
+            hand: [
+                { cardId: "ember-remedy", cooldownRemaining: 0 },
+            ],
+            statusEffects: [
+                { type: "weak" as const, amount: 25, duration: 2 },
+                { type: "weak" as const, amount: 15, duration: 1 },
+            ],
+        },
+    };
+
+    const nextState = playCard(weakened, "ember-remedy");
+
+    expect(nextState.player.statusEffects).not.toContainEqual(
+        expect.objectContaining({ type: "weak" }),
+    );
 });
