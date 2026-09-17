@@ -8,6 +8,7 @@ import {
 import type { CardRarity } from "../types/game";
 import type { MetaProgressState } from "../types/meta";
 import type { CardDefinition } from "../types/game";
+import CardArtwork from "./CardArtwork";
 
 interface DeckBuilderScreenProps {
     meta: MetaProgressState;
@@ -82,6 +83,13 @@ function CardTile({
                     {count}/{MAX_CARD_COPIES}
                 </span>
             </div>
+
+            <CardArtwork
+                cardId={card.id}
+                alt={card.name}
+                className="mt-4 h-36 border border-stone-800"
+                imageClassName="p-1"
+            />
 
             <div className="mt-4 flex flex-wrap gap-1.5">
                 {card.effects.map((effect, index) => (

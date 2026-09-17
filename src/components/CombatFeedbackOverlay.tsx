@@ -90,8 +90,8 @@ export default function CombatFeedback({
                         className={[
                             "pointer-events-none absolute z-50",
                             "animate-[combatFloat_1s_ease-out_forwards]",
-                            "font-serif text-3xl font-bold",
-                            "drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)]",
+                            "border border-black/40 bg-black/30 px-3 py-1 font-serif text-3xl font-bold",
+                            "shadow-[0_6px_18px_rgba(0,0,0,0.45)] drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)]",
                             item.target ===
                             "player"
                                 ? "left-[20%] top-[26%]"

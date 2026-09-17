@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { cards } from "../data/cards";
 import type { CardRarity } from "../types/game";
 import type { CardPackOpenResult, MetaProgressState, PackCardResult } from "../types/meta";
+import CardArtwork from "./CardArtwork";
 import { CARD_PACK_COST, CARD_PACK_SIZE } from "../state/meta-state";
 
 interface CardPacksScreenProps {
@@ -125,11 +126,12 @@ function RevealCard({
                         <span className="text-[8px] uppercase tracking-[0.2em] text-stone-600">{card.category}</span>
                     </div>
 
-                    <div className="mt-6 flex h-40 items-center justify-center border border-stone-800 bg-[radial-gradient(circle,_rgba(140,54,20,0.18),_rgba(0,0,0,0.2)_65%)]">
-                        <div className={`flex h-24 w-24 items-center justify-center rounded-full border ${meta.className} bg-black/20 text-4xl`}>
-                            ✦
-                        </div>
-                    </div>
+                    <CardArtwork
+                        cardId={card.id}
+                        alt={card.name}
+                        className="mt-6 h-40 border border-stone-800"
+                        imageClassName="p-1"
+                    />
 
                     <h3 className="mt-5 font-serif text-2xl font-bold uppercase tracking-[0.06em] text-stone-100">
                         {card.name}

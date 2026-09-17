@@ -8,6 +8,7 @@ import {
     CARD_PACK_COST,
     MAX_CARD_COPIES,
 } from "../state/meta-state";
+import CardArtwork from "./CardArtwork";
 
 interface CardVaultScreenProps {
     meta: MetaProgressState;
@@ -230,9 +231,15 @@ export default function CardVaultScreen({
                                     return (
                                         <div
                                             key={`${cardId}-${index}`}
-                                            className="border border-orange-900/40 bg-[#120d0a] p-6"
+                                            className="border border-orange-900/40 bg-[#120d0a] p-4"
                                         >
-                                            <p className={`text-[9px] uppercase tracking-[0.3em] ${rarityClass(card.rarity)}`}>
+                                            <CardArtwork
+                                                cardId={card.id}
+                                                alt={card.name}
+                                                className="h-40 border border-stone-800"
+                                                imageClassName="p-1"
+                                            />
+                                            <p className={`mt-4 text-[9px] uppercase tracking-[0.3em] ${rarityClass(card.rarity)}`}>
                                                 {rarityLabel(card.rarity)}
                                             </p>
                                             <h4 className="mt-2 font-serif text-xl font-bold text-stone-100">
@@ -274,7 +281,13 @@ export default function CardVaultScreen({
                                         key={card.id}
                                         className="border border-stone-800 bg-[#100c09] p-4"
                                     >
-                                        <div className="flex items-start justify-between gap-3">
+                                        <CardArtwork
+                                            cardId={card.id}
+                                            alt={card.name}
+                                            className="h-32 border border-stone-800"
+                                            imageClassName="p-1"
+                                        />
+                                        <div className="mt-4 flex items-start justify-between gap-3">
                                             <div>
                                                 <p className={`text-[8px] uppercase tracking-[0.25em] ${rarityClass(card.rarity)}`}>
                                                     {rarityLabel(card.rarity)}

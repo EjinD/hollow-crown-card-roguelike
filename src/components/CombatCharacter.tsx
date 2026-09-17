@@ -64,7 +64,7 @@ export default function CombatCharacter({
     return (
         <div
             className={[
-                "relative flex h-[min(30vw,460px)] w-[min(30vw,460px)] min-h-[300px] min-w-[300px] items-end justify-center",
+                "relative flex h-[min(32vw,480px)] w-[min(32vw,480px)] min-h-[300px] min-w-[300px] items-end justify-center",
                 characterEffect,
                 enemyActionClass,
             ].join(" ")}
@@ -115,6 +115,9 @@ export default function CombatCharacter({
             {block && (
                 <div className="pointer-events-none absolute inset-0 z-20 rounded-full bg-sky-400/20 blur-2xl" />
             )}
+
+            <div className="pointer-events-none absolute bottom-[2%] z-0 h-10 w-[64%] rounded-[50%] bg-black/70 blur-xl" />
+            <div className="pointer-events-none absolute bottom-[4%] z-0 h-6 w-[48%] rounded-[50%] border border-amber-900/25 bg-amber-900/10 blur-[2px]" />
 
             <img
                 src={image}

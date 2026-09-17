@@ -618,8 +618,8 @@ export default function CombatScreen({
     }
 
     return (
-        <main className="min-h-screen overflow-hidden bg-[#0b0907] text-stone-200">
-            <div className="relative min-h-screen w-full overflow-hidden">
+        <main className="h-screen overflow-hidden bg-[#070504] text-stone-200">
+            <div className="relative h-screen w-full overflow-hidden bg-[#070504]">
                 <CombatHeader
                     gold={gold}
                     onOpenInventory={() =>
@@ -640,16 +640,19 @@ export default function CombatScreen({
                         className="h-full w-full select-none object-cover"
                     />
 
-                    <div className="absolute inset-0 bg-black/25" />
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,3,2,0.35),rgba(7,4,3,0.18)_42%,rgba(7,4,3,0.55))]" />
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(185,77,20,0.11),transparent_35%)]" />
                 </div>
 
                 {/* TOP HUD */}
-                <div className="relative z-20 flex items-start justify-between px-8 pt-5">
+                <div className="relative z-20 flex items-start justify-between px-7 pt-4">
                     {/* PLAYER */}
-                    <div className="w-[300px]">
-                        <div className="border border-stone-700/80 bg-[#100c0a]/90 px-4 py-3 shadow-[0_6px_25px_rgba(0,0,0,0.45)]">
+                    <div className="w-[320px]">
+                        <div className="relative overflow-hidden border border-amber-900/55 bg-[linear-gradient(180deg,rgba(24,13,9,0.96),rgba(10,7,5,0.92))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,229,184,0.06),0_10px_30px_rgba(0,0,0,0.44)]">
+                            <div className="pointer-events-none absolute inset-[3px] border border-white/[0.035]" />
+                            <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/20 to-transparent" />
                             <div className="flex items-center justify-between">
-                                <span className="text-[10px] uppercase tracking-[0.3em] text-stone-500">
+                                <span className="text-[8px] font-semibold uppercase tracking-[0.3em] text-amber-800/90">
                                     Player
                                 </span>
 
@@ -664,7 +667,7 @@ export default function CombatScreen({
                                         />
                                     )}
 
-                                    <span className="text-xl font-bold text-stone-100">
+                                    <span className="font-serif text-2xl font-bold text-stone-100 drop-shadow-[0_0_8px_rgba(255,235,200,0.08)]">
                                         {combat.player.hp}
                                         <span className="text-stone-500">
                                             /{combat.player.maxHp}
@@ -673,7 +676,7 @@ export default function CombatScreen({
                                 </div>
                             </div>
 
-                            <div className="mt-2">
+                            <div className="mt-3">
                                 <CombatHealthBar
                                     current={
                                         combat
@@ -697,15 +700,17 @@ export default function CombatScreen({
                     </div>
 
                     {/* ENEMY */}
-                    <div className="w-[300px]">
-                        <div className="border border-stone-700/80 bg-[#100c0a]/90 px-4 py-3 shadow-[0_6px_25px_rgba(0,0,0,0.45)]">
+                    <div className="w-[320px]">
+                        <div className="relative overflow-hidden border border-amber-900/55 bg-[linear-gradient(180deg,rgba(24,13,9,0.96),rgba(10,7,5,0.92))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,229,184,0.06),0_10px_30px_rgba(0,0,0,0.44)]">
+                            <div className="pointer-events-none absolute inset-[3px] border border-white/[0.035]" />
+                            <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/20 to-transparent" />
                             <div className="flex items-center justify-between">
                                 <div className="min-w-0">
-                                    <span className="max-w-[170px] truncate text-[11px] font-bold uppercase tracking-[0.18em] text-stone-300" title={enemyDefinition?.name ?? "Enemy"}>
+                                    <span className="max-w-[220px] truncate font-serif text-sm font-bold uppercase tracking-[0.12em] text-stone-100" title={enemyDefinition?.name ?? "Enemy"}>
                                         {enemyDefinition?.name ?? "Enemy"}
                                     </span>
                                     {enemyDefinition?.phases && combat.enemy.bossPhase != null && (
-                                        <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-500/80">
+                                        <div className="mt-1 text-[8px] font-semibold uppercase tracking-[0.18em] text-amber-600/90">
                                             {enemyDefinition.phases[combat.enemy.bossPhase]?.name ?? `Phase ${combat.enemy.bossPhase + 1}`}
                                         </div>
                                     )}
@@ -732,7 +737,7 @@ export default function CombatScreen({
                                         />
                                     )}
 
-                                    <span className="text-xl font-bold text-stone-100">
+                                    <span className="font-serif text-2xl font-bold text-stone-100 drop-shadow-[0_0_8px_rgba(255,235,200,0.08)]">
                                         {
                                             combat
                                                 .enemy
@@ -749,7 +754,7 @@ export default function CombatScreen({
                                 </div>
                             </div>
 
-                            <div className="mt-2">
+                            <div className="mt-3">
                                 <CombatHealthBar
                                     current={
                                         combat
@@ -772,7 +777,7 @@ export default function CombatScreen({
                 </div>
 
                 {/* BATTLEFIELD */}
-                <section className="absolute inset-x-0 top-24 bottom-44 flex items-center justify-center">
+                <section className="absolute inset-x-0 top-[92px] bottom-[370px] flex items-center justify-center">
                     <div className="relative h-full w-full">
                         {/* PLAYED CARD */}
                         {playingCard && (
@@ -804,7 +809,7 @@ export default function CombatScreen({
                             ref={
                                 playerTargetRef
                             }
-                            className="absolute bottom-[10%] left-[15%] z-10"
+                            className="absolute bottom-[8%] left-[12%] z-10"
                         >
                             <CombatCharacter
                                 image={
@@ -831,7 +836,7 @@ export default function CombatScreen({
                             ref={
                                 enemyTargetRef
                             }
-                            className="absolute bottom-[10%] right-[13%] z-10"
+                            className="absolute bottom-[8%] right-[11%] z-10"
                         >
                             {enemyImage && (
                                 <CombatCharacter
@@ -861,7 +866,7 @@ export default function CombatScreen({
                         </div>
 
                         {/* INTENT */}
-                        <div className="absolute right-[3%] top-[32%] z-20">
+                        <div className="absolute right-[4%] top-[30%] z-20">
                             <EnemyIntent
                                 intent={
                                     combat.enemy

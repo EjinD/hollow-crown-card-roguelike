@@ -1,5 +1,4 @@
 import type { CardState } from "../types/game";
-
 import CardPile from "./CardPile";
 import Hand from "./Hands";
 
@@ -10,191 +9,47 @@ interface CombatTableProps {
     exiledCount: number;
     actions: number;
     isPlayerTurn: boolean;
-    onPlayCard: (
-        cardId: string,
-        sourceRect: DOMRect,
-    ) => void;
+    onPlayCard: (cardId: string, sourceRect: DOMRect) => void;
     onEndTurn: () => void;
 }
 
-export default function CombatTable({
-    hand,
-    drawPileCount,
-    discardPileCount,
-    exiledCount,
-    actions,
-    isPlayerTurn,
-    onPlayCard,
-    onEndTurn,
-}: CombatTableProps) {
+export default function CombatTable({ hand, drawPileCount, discardPileCount, exiledCount, actions, isPlayerTurn, onPlayCard, onEndTurn }: CombatTableProps) {
     return (
-        <section className="absolute inset-x-0 bottom-0 z-30 h-[360px] overflow-visible">
-            <svg
-                className="pointer-events-none absolute inset-0 h-full w-full"
-                viewBox="0 0 1000 360"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-            >
-                <polygon
-                    points="
-                        0,0
-                        155,0
-                        180,62
-                        765,62
-                        810,0
-                        1000,0
-                        1000,360
-                        0,360
-                    "
-                    fill="#100b08"
-                    stroke="#4a3327"
-                    strokeWidth="2"
-                    vectorEffect="non-scaling-stroke"
-                />
-
-                <polygon
-                    points="
-                        3,5
-                        152,5
-                        177,67
-                        768,67
-                        813,5
-                        997,5
-                        997,357
-                        3,357
-                    "
-                    fill="url(#tableSurface)"
-                    stroke="#241913"
-                    strokeWidth="2"
-                    vectorEffect="non-scaling-stroke"
-                />
-
-                <polyline
-                    points="
-                        0,11
-                        148,11
-                        173,72
-                        772,72
-                        817,11
-                        1000,11
-                    "
-                    fill="none"
-                    stroke="#694636"
-                    strokeWidth="1.5"
-                    opacity="0.7"
-                    vectorEffect="non-scaling-stroke"
-                />
-
-                <polyline
-                    points="
-                        177,67
-                        205,82
-                        795,82
-                        823,67
-                    "
-                    fill="none"
-                    stroke="#070504"
-                    strokeWidth="2"
-                    opacity="0.9"
-                    vectorEffect="non-scaling-stroke"
-                />
-
-                <defs>
-                    <linearGradient
-                        id="tableSurface"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                    >
-                        <stop
-                            offset="0%"
-                            stopColor="#1a100c"
-                        />
-
-                        <stop
-                            offset="45%"
-                            stopColor="#120c09"
-                        />
-
-                        <stop
-                            offset="100%"
-                            stopColor="#0b0806"
-                        />
-                    </linearGradient>
-                </defs>
-            </svg>
-
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(120,55,20,0.13),transparent_58%)]" />
-
-            <div className="absolute bottom-6 left-8 z-40">
-                <CardPile
-                    label="Draw"
-                    count={
-                        drawPileCount
-                    }
-                    variant="draw"
-                />
+        <section className="absolute inset-x-0 bottom-0 z-30 h-[385px] overflow-visible">
+            <div className="absolute inset-x-0 bottom-0 h-full border-t border-amber-900/55 bg-[linear-gradient(180deg,rgba(25,13,9,0.9),rgba(9,6,5,0.98))] shadow-[0_-16px_40px_rgba(0,0,0,0.5)]">
+                <div className="absolute inset-x-0 top-0 h-16 bg-[radial-gradient(ellipse_at_50%_0%,rgba(183,82,25,0.18),transparent_65%)]" />
+                <div className="pointer-events-none absolute inset-[6px] border border-amber-900/20" />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/20 to-transparent" />
             </div>
 
-            <div className="absolute left-[17%] top-[30px] z-40 flex h-24 w-24 items-center justify-center rounded-full border-2 border-orange-900 bg-[#100905]/95 shadow-[0_0_25px_rgba(110,40,10,0.25)]">
-                <div className="text-center">
-                    <span className="block font-serif text-3xl font-bold text-orange-300">
-                        {actions}
-                    </span>
+            <div className="absolute bottom-8 left-8 z-40"><CardPile label="Draw" count={drawPileCount} variant="draw" /></div>
+            <div className="absolute bottom-8 right-[13%] z-40"><CardPile label="Discard" count={discardPileCount} variant="discard" /></div>
+            <div className="absolute bottom-8 right-8 z-40"><CardPile label="Exiled" count={exiledCount} variant="exiled" /></div>
 
-                    <span className="text-[9px] uppercase tracking-[0.2em] text-stone-500">
-                        Actions
-                    </span>
-                </div>
+            <div className="absolute left-[16%] top-[18px] z-40 flex h-24 w-24 flex-col items-center justify-center border border-amber-800/70 bg-[radial-gradient(circle,#3c2111,#120a07_70%)] shadow-[inset_0_0_20px_rgba(0,0,0,0.55),0_0_28px_rgba(167,73,18,0.16)]">
+                <span className="font-serif text-3xl font-bold text-amber-200 drop-shadow-[0_0_10px_rgba(245,158,11,0.25)]">{actions}</span>
+                <span className="mt-1 text-[8px] font-semibold uppercase tracking-[0.22em] text-amber-800/90">Actions</span>
+                <span className="absolute inset-[4px] border border-amber-300/10" />
             </div>
 
             <button
                 type="button"
                 disabled={!isPlayerTurn}
                 onClick={onEndTurn}
-                className="absolute right-[7%] top-[38px] z-40 border border-orange-900 bg-[linear-gradient(to_bottom,#4a1710,#2a0d09)] px-10 py-4 font-serif text-lg font-bold uppercase tracking-[0.15em] text-orange-100 shadow-[0_5px_20px_rgba(0,0,0,0.55)] transition-all duration-200 hover:border-orange-700 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                className={[
+                    "absolute right-[7%] top-[24px] z-40 overflow-hidden border border-amber-700/70 bg-[linear-gradient(180deg,#5a2a13,#2c120a 55%,#170905)] px-10 py-4 font-serif text-lg font-bold uppercase tracking-[0.12em] text-amber-50 shadow-[inset_0_1px_0_rgba(255,225,173,0.22),inset_0_-3px_0_rgba(0,0,0,0.35),0_8px_28px_rgba(0,0,0,0.52)] transition duration-150 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-amber-100/30",
+                    !isPlayerTurn ? "cursor-not-allowed opacity-35" : "hover:-translate-y-0.5 hover:border-amber-400/80 hover:brightness-110 active:translate-y-px",
+                ].join(" ")}
             >
                 End Turn
             </button>
 
-            <div className="absolute bottom-[48px] left-1/2 z-40 w-[820px] -translate-x-1/2">
-                <Hand
-                    cards={hand}
-                    disabled={
-                        !isPlayerTurn ||
-                        actions <= 0
-                    }
-                    onPlayCard={
-                        onPlayCard
-                    }
-                />
+            <div className="absolute bottom-[42px] left-1/2 z-40 h-[310px] w-[900px] -translate-x-1/2">
+                <Hand cards={hand} disabled={!isPlayerTurn || actions <= 0} onPlayCard={onPlayCard} />
             </div>
 
-            <div className="absolute bottom-6 right-[13%] z-40">
-                <CardPile
-                    label="Discard"
-                    count={
-                        discardPileCount
-                    }
-                    variant="discard"
-                />
-            </div>
-
-            <div className="absolute bottom-6 right-8 z-40">
-                <CardPile
-                    label="Exiled"
-                    count={
-                        exiledCount
-                    }
-                    variant="exiled"
-                />
-            </div>
-
-            <div className="absolute bottom-2 left-1/2 z-50 -translate-x-1/2">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
-                    Hand {hand.length}
-                </span>
+            <div className="pointer-events-none absolute bottom-2 left-1/2 z-50 -translate-x-1/2 border border-amber-950/40 bg-black/25 px-3 py-1">
+                <span className="text-[8px] font-semibold uppercase tracking-[0.25em] text-stone-600">Hand {hand.length}</span>
             </div>
         </section>
     );
