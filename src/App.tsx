@@ -104,14 +104,14 @@ const ENEMY_ACTION_TIMING: Record<
     EnemyActionTiming
 > = {
     attack: { duration: 520, impact: 285 },
-    "attack-debuff": { duration: 650, impact: 355 },
-    "attack-buff": { duration: 650, impact: 225 },
-    drain: { duration: 650, impact: 225 },
+    "attack-debuff": { duration: 680, impact: 360 },
+    "attack-buff": { duration: 680, impact: 300 },
+    drain: { duration: 680, impact: 310 },
     block: { duration: 520, impact: 285 },
-    "block-buff": { duration: 650, impact: 225 },
-    heal: { duration: 650, impact: 225 },
-    buff: { duration: 650, impact: 225 },
-    debuff: { duration: 650, impact: 355 },
+    "block-buff": { duration: 680, impact: 320 },
+    heal: { duration: 680, impact: 300 },
+    buff: { duration: 680, impact: 300 },
+    debuff: { duration: 680, impact: 340 },
 };
 
 function getEnemyActionTiming(
@@ -154,7 +154,7 @@ export default function App() {
         setEnemyAction,
     ] = useState<EnemyAction>(null);
 
-    const intentTimerRef =
+    const enemyWindupTimerRef =
         useRef<number | null>(null);
 
     const impactTimerRef =
@@ -165,9 +165,9 @@ export default function App() {
 
     useEffect(() => {
         return () => {
-            if (intentTimerRef.current !== null) {
+            if (enemyWindupTimerRef.current !== null) {
                 window.clearTimeout(
-                    intentTimerRef.current,
+                    enemyWindupTimerRef.current,
                 );
             }
 
@@ -281,9 +281,9 @@ export default function App() {
     }
 
     function handleReturnToHub() {
-        if (intentTimerRef.current !== null) {
+        if (enemyWindupTimerRef.current !== null) {
             window.clearTimeout(
-                intentTimerRef.current,
+                enemyWindupTimerRef.current,
             );
         }
 
@@ -386,22 +386,34 @@ export default function App() {
         setCombat(combatState);
         clearEnemyAnimation();
 
-        if (combatState.phase === "defeat") {
-            const syncedMeta =
-                completeRunInMetaProgress(
-                    meta,
-                    "defeat",
-                    nextRun.gold,
-                    undefined,
-                    nextRun.dungeonId,
-                );
+        const completeAfterPresentation = () => {
+            if (combatState.phase === "defeat") {
+                const syncedMeta =
+                    completeRunInMetaProgress(
+                        meta,
+                        "defeat",
+                        nextRun.gold,
+                        undefined,
+                        nextRun.dungeonId,
+                    );
 
-            setMeta(syncedMeta);
-            setScreen("game-over");
-            return;
-        }
+                setMeta(syncedMeta);
+                setScreen("game-over");
+                return;
+            }
 
-        setScreen("reward");
+            setScreen("reward");
+        };
+
+        /*
+         * Keep the combat scene alive long enough for the defeated actor
+         * to play its death pose before switching to the next screen.
+         */
+        animationEndTimerRef.current =
+            window.setTimeout(() => {
+                animationEndTimerRef.current = null;
+                completeAfterPresentation();
+            }, 720);
     }
 
     function handlePlayCard(
@@ -443,7 +455,7 @@ export default function App() {
         }
 
         if (
-            intentTimerRef.current !== null ||
+            enemyWindupTimerRef.current !== null ||
             impactTimerRef.current !== null ||
             animationEndTimerRef.current !== null
         ) {
@@ -466,9 +478,9 @@ export default function App() {
         setEnemyAction(currentEnemyAction);
         setIsEnemyTurnAnimating(true);
 
-        intentTimerRef.current = window.setTimeout(
+        enemyWindupTimerRef.current = window.setTimeout(
             () => {
-                intentTimerRef.current = null;
+                enemyWindupTimerRef.current = null;
                 setIsEnemyTurnAnimating(false);
                 setIsEnemyAttacking(true);
 
@@ -519,7 +531,7 @@ export default function App() {
                             }, remainingDuration);
                     }, actionTiming.impact);
             },
-            650,
+            260,
         );
     }
 

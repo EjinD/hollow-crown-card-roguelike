@@ -18,145 +18,165 @@ export type EnemyActionEffect =
     | "debuff"
     | null;
 
+export type CombatCharacterAnimation =
+    | "idle"
+    | "attack"
+    | "hit"
+    | "death"
+    | "signature";
+
 interface CombatCharacterProps {
     image: string;
     side: "player" | "enemy";
+    animationState?: CombatCharacterAnimation;
     hit?: boolean;
     heal?: boolean;
     block?: boolean;
     enemyAction?: EnemyActionEffect;
 }
 
+function getAnimationClass(
+    side: CombatCharacterProps["side"],
+    state: CombatCharacterAnimation,
+): string {
+    if (state === "idle") {
+        return "combat-actor--idle";
+    }
+
+    if (state === "attack") {
+        return side === "player"
+            ? "combat-actor--player-attack"
+            : "combat-actor--enemy-attack";
+    }
+
+    if (state === "signature") {
+        return side === "player"
+            ? "combat-actor--player-signature"
+            : "combat-actor--enemy-signature";
+    }
+
+    if (state === "hit") {
+        return side === "player"
+            ? "combat-actor--player-hit"
+            : "combat-actor--enemy-hit";
+    }
+
+    return "combat-actor--death";
+}
+
+function isSignatureAction(
+    action: EnemyActionEffect,
+): boolean {
+    return (
+        action === "attack-debuff" ||
+        action === "attack-buff" ||
+        action === "drain" ||
+        action === "block" ||
+        action === "block-buff" ||
+        action === "block-buff" ||
+        action === "heal" ||
+        action === "buff" ||
+        action === "debuff"
+    );
+}
+
 export default function CombatCharacter({
     image,
     side,
+    animationState = "idle",
     hit = false,
     heal = false,
     block = false,
     enemyAction = null,
 }: CombatCharacterProps) {
-    const characterEffect =
-        hit
-            ? "animate-[characterHit_280ms_ease-out]"
-            : heal
-              ? "animate-[characterHeal_420ms_ease-out]"
-              : block
-                ? "animate-[characterBlock_420ms_ease-out]"
-                : "";
-
-    const enemyActionClass =
-        side === "enemy" &&
-        enemyAction
-            ? getEnemyActionAnimation(
-                  enemyAction,
-              )
+    const effectClass = hit
+        ? "combat-actor__image--hit"
+        : heal
+          ? "combat-actor__image--heal"
+          : block
+            ? "combat-actor__image--block"
             : "";
 
-    const impactEffect =
-        hit
-            ? "hit"
-            : heal
-              ? "heal"
-              : block
-                ? "block"
-                : null;
+    const signatureActive =
+        side === "enemy" &&
+        animationState === "signature" &&
+        isSignatureAction(enemyAction);
+
+    const impactEffect = hit
+        ? "hit"
+        : heal
+          ? "heal"
+          : block
+            ? "block"
+            : null;
 
     return (
         <div
             className={[
-                "relative flex h-[min(32vw,480px)] w-[min(32vw,480px)] min-h-[300px] min-w-[300px] items-end justify-center",
-                characterEffect,
-                enemyActionClass,
+                "combat-actor",
+                getAnimationClass(
+                    side,
+                    animationState,
+                ),
             ].join(" ")}
+            data-side={side}
+            data-state={animationState}
         >
             {impactEffect && (
                 <CombatImpact
-                    effect={
-                        impactEffect
-                    }
+                    effect={impactEffect}
                 />
             )}
 
-            {/* BLOCK ACTION */}
-            {enemyAction ===
-                "block" && (
-                <div className="pointer-events-none absolute inset-[-20%] z-20 rounded-full border-2 border-sky-300/30 animate-[enemyBlockAura_520ms_ease-out_forwards]" />
+            {signatureActive && (
+                <div className="combat-actor__signature-aura" />
             )}
 
-            {/* HEAL ACTION */}
-            {enemyAction ===
-                "heal" && (
-                <div className="pointer-events-none absolute inset-[-20%] z-20 rounded-full bg-emerald-400/10 blur-3xl animate-[enemyHealAura_650ms_ease-out_forwards]" />
+            {animationState === "attack" && (
+                <div className="combat-actor__motion-trails" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                </div>
             )}
 
-            {/* BUFF ACTION */}
-            {enemyAction ===
-                "buff" && (
-                <div className="pointer-events-none absolute inset-[-20%] z-20 rounded-full bg-amber-400/10 blur-3xl animate-[enemyBuffAura_650ms_ease-out_forwards]" />
+            {animationState === "signature" && (
+                <div className="combat-actor__signature-energy" aria-hidden="true">
+                    <span />
+                    <span />
+                </div>
             )}
 
-            {/* DEBUFF ACTION */}
-            {enemyAction ===
-                "debuff" && (
-                <div className="pointer-events-none absolute inset-[-20%] z-20 rounded-full bg-purple-500/10 blur-3xl animate-[enemyDebuffAura_650ms_ease-out_forwards]" />
-            )}
-
-            {/* DAMAGE FLASH */}
             {hit && (
-                <div className="pointer-events-none absolute inset-0 z-20 rounded-full bg-red-500/25 blur-2xl" />
+                <div
+                    className="combat-actor__hit-flash"
+                    aria-hidden="true"
+                />
             )}
 
-            {/* HEAL FLASH */}
-            {heal && (
-                <div className="pointer-events-none absolute inset-0 z-20 rounded-full bg-emerald-400/20 blur-2xl" />
+            {animationState === "death" && (
+                <div
+                    className="combat-actor__death-ash"
+                    aria-hidden="true"
+                >
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                </div>
             )}
 
-            {/* BLOCK FLASH */}
-            {block && (
-                <div className="pointer-events-none absolute inset-0 z-20 rounded-full bg-sky-400/20 blur-2xl" />
-            )}
-
-            <div className="pointer-events-none absolute bottom-[2%] z-0 h-10 w-[64%] rounded-[50%] bg-black/70 blur-xl" />
-            <div className="pointer-events-none absolute bottom-[4%] z-0 h-6 w-[48%] rounded-[50%] border border-amber-900/25 bg-amber-900/10 blur-[2px]" />
+            <div className="combat-actor__ground-shadow" />
 
             <img
                 src={image}
-                alt={
-                    side === "player"
-                        ? "Player"
-                        : "Enemy"
-                }
+                alt={side === "player" ? "Player" : "Enemy"}
                 draggable={false}
-                className="relative z-10 block h-full w-full select-none object-contain"
+                className={[
+                    "combat-actor__image",
+                    effectClass,
+                ].join(" ")}
             />
         </div>
     );
-}
-
-function getEnemyActionAnimation(
-    action: EnemyActionEffect,
-): string {
-    switch (action) {
-        case "attack":
-        case "attack-debuff":
-        case "attack-buff":
-        case "drain":
-            return "animate-[enemyAttack_520ms_cubic-bezier(0.22,1,0.36,1)]";
-
-        case "block":
-        case "block-buff":
-            return "animate-[enemyBlock_520ms_ease-out]";
-
-        case "heal":
-            return "animate-[enemyHeal_650ms_ease-out]";
-
-        case "buff":
-            return "animate-[enemyBuff_650ms_ease-out]";
-
-        case "debuff":
-            return "animate-[enemyDebuff_650ms_ease-out]";
-
-        default:
-            return "";
-    }
 }

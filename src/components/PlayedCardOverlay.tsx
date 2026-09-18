@@ -7,6 +7,7 @@ interface PlayedCardOverlayProps {
     card: CardState;
     sourceRect: DOMRect;
     targetRect: DOMRect;
+    duration?: number;
     onComplete: () => void;
 }
 
@@ -14,6 +15,7 @@ export default function PlayedCardOverlay({
     card,
     sourceRect,
     targetRect,
+    duration = 420,
     onComplete,
 }: PlayedCardOverlayProps) {
     const sourceCenterX =
@@ -64,7 +66,11 @@ export default function PlayedCardOverlay({
                 onComplete
             }
         >
-            <div className="animate-[cardTravel_420ms_cubic-bezier(0.22,1,0.36,1)_forwards]">
+            <div
+                style={{
+                    animation: `cardTravel ${duration}ms cubic-bezier(0.22,1,0.36,1) forwards`,
+                }}
+            >
                 <Card
                     card={card}
                     disabled

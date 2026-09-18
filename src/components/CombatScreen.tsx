@@ -12,8 +12,12 @@ import type {
 
 import { enemies } from "../data/enemies";
 import { cards } from "../data/cards";
-import playerImage from "../assets/characters/player.png";
+import { getPlayerArtwork, type PlayerAnimationState } from "../data/playerAssets";
 import battlefieldImage from "../assets/backgrounds/battlefield.png";
+import {
+    getEnemyAnimationState,
+    getEnemyArtwork,
+} from "../data/enemyAssets";
 
 import CombatCharacter, {
     type CharacterEffect,
@@ -24,27 +28,10 @@ import StatusEffects from "./StatusEffects";
 import CombatTable from "./CombatTable";
 import CombatHealthBar from "./CombatHealthBar";
 import PlayedCardOverlay from "./PlayedCardOverlay";
-import EnemyIntent from "./EnemyIntent";
 import InventoryScreen from "./InventoryScreen";
 import CombatFeedback, {
     type CombatFeedbackItem,
 } from "./CombatFeedbackOverlay";
-
-const enemyAssetModules = import.meta.glob(
-    "../assets/characters/*.{png,webp}",
-    {
-        eager: true,
-        import: "default",
-        query: "?url",
-    },
-) as Record<string, string>;
-
-const enemyImages: Record<string, string> = Object.fromEntries(
-    Object.entries(enemyAssetModules).map(([path, url]) => {
-        const file = path.split("/").pop() ?? "";
-        return [file.replace(/\.(png|webp)$/i, ""), url];
-    }),
-);
 
 interface CombatScreenProps {
     combat: CombatState;
@@ -166,6 +153,11 @@ export default function CombatScreen({
             null,
         );
 
+    const playerAttackTimer =
+        useRef<number | null>(
+            null,
+        );
+
     const [
         feedback,
         setFeedback,
@@ -191,6 +183,11 @@ export default function CombatScreen({
         );
 
     const [
+        isPlayerAttacking,
+        setIsPlayerAttacking,
+    ] = useState(false);
+
+    const [
         showInventory,
         setShowInventory,
     ] = useState(false);
@@ -200,12 +197,6 @@ export default function CombatScreen({
             "player-turn" &&
         !isEnemyTurnAnimating &&
         !isEnemyAttacking;
-
-    const enemyImage =
-        enemyImages[
-            combat.enemy
-                .definitionId
-        ] ?? enemyImages.goblin;
 
     const enemyDefinition =
         enemies.find(
@@ -218,6 +209,65 @@ export default function CombatScreen({
     const enemyMaxHp =
         enemyDefinition?.maxHp ??
         combat.enemy.hp;
+
+    const visualBossPhase =
+        enemyDefinition?.phases
+            ? enemyDefinition.phases.reduce(
+                  (activeIndex, phase, index) =>
+                      combat.enemy.hp /
+                          enemyDefinition.maxHp <=
+                      phase.threshold
+                          ? index
+                          : activeIndex,
+                  0,
+              )
+            : combat.enemy.bossPhase;
+
+    const enemyPresentationState =
+        getEnemyAnimationState(
+            combat.enemy,
+            enemyAction,
+            isEnemyAttacking,
+            combat.phase === "victory",
+            characterEffects.enemy === "hit",
+        );
+
+    const enemyImage =
+        getEnemyArtwork(
+            combat.enemy.definitionId,
+            enemyPresentationState,
+            visualBossPhase,
+        );
+
+    const playerCardDefinition =
+        playingCard
+            ? cards.find(
+                  (card) =>
+                      card.id ===
+                      playingCard.card.cardId,
+              )
+            : null;
+
+    const playerIsPlayingLegendaryCard =
+        Boolean(
+            playerCardDefinition?.rarity === "legendary",
+        );
+
+    const playerPresentationState: PlayerAnimationState =
+        combat.phase === "defeat"
+            ? "death"
+            : characterEffects.player === "hit"
+              ? "hit"
+              : isPlayerAttacking
+                ? playerIsPlayingLegendaryCard
+                    ? "signature"
+                    : "attack"
+                : "idle";
+
+    const playerImage =
+        getPlayerArtwork(
+            playerPresentationState,
+        );
 
     /*
      * ============================
@@ -517,6 +567,19 @@ export default function CombatScreen({
         };
     }, []);
 
+    useEffect(() => {
+        return () => {
+            if (
+                playerAttackTimer.current !==
+                null
+            ) {
+                window.clearTimeout(
+                    playerAttackTimer.current,
+                );
+            }
+        };
+    }, []);
+
     /*
      * ============================
      * CARD TARGET
@@ -596,6 +659,29 @@ export default function CombatScreen({
         if (!card) {
             return;
         }
+
+        if (
+            playerAttackTimer.current !==
+            null
+        ) {
+            window.clearTimeout(
+                playerAttackTimer.current,
+            );
+        }
+
+        const isLegendaryCard =
+            playerCardDefinition?.rarity === "legendary";
+
+        const playerAnimationDuration =
+            isLegendaryCard ? 680 : 520;
+
+        setIsPlayerAttacking(true);
+        playerAttackTimer.current =
+            window.setTimeout(() => {
+                playerAttackTimer.current =
+                    null;
+                setIsPlayerAttacking(false);
+            }, playerAnimationDuration);
 
         setPlayingCard({
             card,
@@ -709,9 +795,9 @@ export default function CombatScreen({
                                     <span className="max-w-[220px] truncate font-serif text-sm font-bold uppercase tracking-[0.12em] text-stone-100" title={enemyDefinition?.name ?? "Enemy"}>
                                         {enemyDefinition?.name ?? "Enemy"}
                                     </span>
-                                    {enemyDefinition?.phases && combat.enemy.bossPhase != null && (
+                                    {enemyDefinition?.phases && visualBossPhase != null && (
                                         <div className="mt-1 text-[8px] font-semibold uppercase tracking-[0.18em] text-amber-600/90">
-                                            {enemyDefinition.phases[combat.enemy.bossPhase]?.name ?? `Phase ${combat.enemy.bossPhase + 1}`}
+                                            {enemyDefinition.phases[visualBossPhase]?.name ?? `Phase ${visualBossPhase + 1}`}
                                         </div>
                                     )}
                                 </div>
@@ -777,8 +863,43 @@ export default function CombatScreen({
                 </div>
 
                 {/* BATTLEFIELD */}
-                <section className="absolute inset-x-0 top-[92px] bottom-[370px] flex items-center justify-center">
+                <section className="combat-stage absolute inset-x-0 top-[92px] bottom-[370px] flex items-center justify-center">
+                    <div className="combat-stage__backdrop" aria-hidden="true" />
+                    <div className="combat-stage__ground" aria-hidden="true" />
+                    <div className="combat-stage__dust combat-stage__dust--one" aria-hidden="true" />
+                    <div className="combat-stage__dust combat-stage__dust--two" aria-hidden="true" />
+                    <div className="combat-stage__dust combat-stage__dust--three" aria-hidden="true" />
                     <div className="relative h-full w-full">
+                        {(isEnemyTurnAnimating ||
+                            isEnemyAttacking) && (
+                            <div
+                                className={[
+                                    "combat-turn-banner",
+                                    isEnemyAttacking
+                                        ? "combat-turn-banner--active"
+                                        : "",
+                                ].join(" ")}
+                                aria-hidden="true"
+                            >
+                                <span>
+                                    ENEMY TURN
+                                </span>
+                            </div>
+                        )}
+
+                        {combat.phase === "player-turn" &&
+                            !playingCard &&
+                            !isPlayerAttacking && (
+                                <div
+                                    className="combat-turn-banner combat-turn-banner--player"
+                                    aria-hidden="true"
+                                >
+                                    <span>
+                                        YOUR TURN
+                                    </span>
+                                </div>
+                            )}
+
                         {/* PLAYED CARD */}
                         {playingCard && (
                             <PlayedCardOverlay
@@ -790,6 +911,12 @@ export default function CombatScreen({
                                 }
                                 targetRect={
                                     playingCard.targetRect
+                                }
+                                duration={
+                                    playerCardDefinition?.rarity ===
+                                    "legendary"
+                                        ? 640
+                                        : 420
                                 }
                                 onComplete={
                                     handlePlayedCardComplete
@@ -809,26 +936,31 @@ export default function CombatScreen({
                             ref={
                                 playerTargetRef
                             }
-                            className="absolute bottom-[8%] left-[12%] z-10"
+                            className="combat-stage__actor combat-stage__actor--player absolute bottom-[6%] left-[14%] z-10"
                         >
-                            <CombatCharacter
-                                image={
-                                    playerImage
-                                }
-                                side="player"
-                                hit={
-                                    characterEffects.player ===
-                                    "hit"
-                                }
-                                heal={
-                                    characterEffects.player ===
-                                    "heal"
-                                }
-                                block={
-                                    characterEffects.player ===
-                                    "block"
-                                }
-                            />
+                            {playerImage && (
+                                <CombatCharacter
+                                    image={
+                                        playerImage
+                                    }
+                                    side="player"
+                                    animationState={
+                                        playerPresentationState
+                                    }
+                                    hit={
+                                        characterEffects.player ===
+                                        "hit"
+                                    }
+                                    heal={
+                                        characterEffects.player ===
+                                        "heal"
+                                    }
+                                    block={
+                                        characterEffects.player ===
+                                        "block"
+                                    }
+                                />
+                            )}
                         </div>
 
                         {/* ENEMY */}
@@ -836,7 +968,7 @@ export default function CombatScreen({
                             ref={
                                 enemyTargetRef
                             }
-                            className="absolute bottom-[8%] right-[11%] z-10"
+                            className="combat-stage__actor combat-stage__actor--enemy absolute bottom-[6%] right-[13%] z-10"
                         >
                             {enemyImage && (
                                 <CombatCharacter
@@ -844,6 +976,9 @@ export default function CombatScreen({
                                         enemyImage
                                     }
                                     side="enemy"
+                                    animationState={
+                                        enemyPresentationState
+                                    }
                                     enemyAction={
                                         isEnemyAttacking
                                             ? enemyAction
@@ -865,19 +1000,6 @@ export default function CombatScreen({
                             )}
                         </div>
 
-                        {/* INTENT */}
-                        <div className="absolute right-[4%] top-[30%] z-20">
-                            <EnemyIntent
-                                intent={
-                                    combat.enemy
-                                        .intent
-                                }
-                                isExecuting={
-                                    isEnemyTurnAnimating ||
-                                    isEnemyAttacking
-                                }
-                            />
-                        </div>
                     </div>
                 </section>
 
