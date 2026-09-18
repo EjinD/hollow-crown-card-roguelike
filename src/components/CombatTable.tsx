@@ -36,10 +36,7 @@ export default function CombatTable({ hand, drawPileCount, discardPileCount, exi
                 type="button"
                 disabled={!isPlayerTurn}
                 onClick={onEndTurn}
-                className={[
-                    "absolute right-[7%] top-[24px] z-40 overflow-hidden border border-amber-700/70 bg-[linear-gradient(180deg,#5a2a13,#2c120a 55%,#170905)] px-10 py-4 font-serif text-lg font-bold uppercase tracking-[0.12em] text-amber-50 shadow-[inset_0_1px_0_rgba(255,225,173,0.22),inset_0_-3px_0_rgba(0,0,0,0.35),0_8px_28px_rgba(0,0,0,0.52)] transition duration-150 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-amber-100/30",
-                    !isPlayerTurn ? "cursor-not-allowed opacity-35" : "hover:-translate-y-0.5 hover:border-amber-400/80 hover:brightness-110 active:translate-y-px",
-                ].join(" ")}
+                className="hc-button hc-button--primary absolute right-[7%] top-[24px] z-40 min-h-[54px] min-w-[190px] px-10 py-4 text-lg"
             >
                 End Turn
             </button>

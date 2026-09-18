@@ -1,0 +1,208 @@
+.collection-sidebar {
+    min-height: 0;
+}
+
+.collection-panel--deck {
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    overflow: hidden;
+}
+
+.collection-deck-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 15px 10px;
+    border-bottom: 1px solid rgba(132, 82, 41, 0.26);
+}
+
+.collection-deck-header h2 {
+    margin: 3px 0 0;
+    color: #eadbc2;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 23px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.collection-deck-header strong {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 16px;
+}
+
+.collection-deck-header .is-valid {
+    color: #dfbf75;
+}
+
+.collection-deck-header .is-invalid {
+    color: #bd6b46;
+}
+
+.collection-deck-progress {
+    height: 2px;
+    margin: 0 15px 7px;
+    background: rgba(74, 51, 33, 0.45);
+}
+
+.collection-deck-progress span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #a94712, #d9862b);
+    box-shadow: 0 0 12px rgba(211, 106, 27, 0.34);
+}
+
+.collection-deck-list {
+    min-height: 0;
+    padding: 6px 9px;
+}
+
+.collection-deck-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 28px;
+    padding: 2px 3px;
+    border-bottom: 1px solid rgba(100, 69, 42, 0.2);
+    background: rgba(10, 7, 5, 0.35);
+}
+
+.collection-deck-item:hover {
+    background: rgba(45, 23, 12, 0.42);
+}
+
+.collection-deck-item__index {
+    width: 17px;
+    color: rgba(208, 188, 158, 0.25);
+    font-size: 7px;
+    text-align: right;
+}
+
+.collection-deck-item__art {
+    width: 29px;
+    height: 25px;
+    overflow: hidden;
+    border: 1px solid rgba(118, 79, 44, 0.48);
+    background: #080604;
+}
+
+.collection-deck-item__name {
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: #d9c9b0;
+    text-align: left;
+    cursor: pointer;
+}
+
+.collection-deck-item__name strong,
+.collection-deck-item__name span {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.collection-deck-item__name strong {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 8px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.collection-deck-item__name span {
+    margin-top: 1px;
+    color: rgba(202, 182, 155, 0.35);
+    font-size: 5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.collection-deck-item__remove {
+    border: 0;
+    background: transparent;
+    color: rgba(208, 193, 174, 0.24);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.collection-deck-item__remove:hover {
+    color: #d56b4b;
+}
+
+.collection-deck-empty {
+    height: 100%;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed rgba(126, 86, 46, 0.3);
+    color: rgba(207, 190, 165, 0.34);
+    text-align: center;
+}
+
+.collection-deck-empty span {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.collection-deck-empty small {
+    margin-top: 5px;
+    font-size: 7px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.collection-deck-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    padding: 9px;
+    border-top: 1px solid rgba(132, 82, 41, 0.28);
+}
+
+.collection-deck-actions button {
+    border: 1px solid rgba(120, 82, 48, 0.48);
+    padding: 8px 6px;
+    background: #120b07;
+    color: rgba(217, 198, 169, 0.52);
+    font-size: 6px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.collection-deck-actions button:hover:not(:disabled) {
+    border-color: rgba(194, 114, 39, 0.8);
+    color: #e8cf9f;
+}
+
+.collection-deck-actions button:disabled {
+    opacity: 0.28;
+    cursor: not-allowed;
+}
+
+.collection-deck-actions .collection-deck-save {
+    grid-column: 1 / -1;
+    padding: 10px 6px;
+    background: linear-gradient(180deg, #3b190d, #211007);
+    color: #ecd4a3;
+    border-color: rgba(204, 112, 38, 0.74);
+}
+
+.collection-message {
+    margin: -3px 10px 9px;
+    color: rgba(216, 194, 164, 0.45);
+    font-size: 7px;
+    line-height: 1.25;
+    text-align: center;
+}
+

@@ -1,0 +1,7 @@
+/* Keep the Collection scene fully viewport-bound; never expose the browser page background. */
+html:has(.collection-shell),
+body:has(.collection-shell) {
+    min-height: 100%;
+    overflow: hidden;
+    background: #070504;
+}

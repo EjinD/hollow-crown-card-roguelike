@@ -1,0 +1,32 @@
+@media (max-width: 1120px) {
+    .collection-deck-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-height: 820px) {
+    .collection-card-face__name {
+        font-size: 12px;
+        min-height: 24px;
+    }
+
+    .collection-card-face__description {
+        font-size: 9.5px;
+        gap: 4px;
+    }
+
+    .collection-effect-icon {
+        width: 17px;
+        height: 17px;
+        font-size: 9px;
+    }
+
+    .collection-deck-item {
+        min-height: 44px;
+    }
+
+    .collection-deck-item__art {
+        width: 39px;
+        height: 34px;
+    }
+}

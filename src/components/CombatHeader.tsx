@@ -28,13 +28,7 @@ function GameButton({
             type="button"
             disabled={disabled}
             onClick={onClick}
-            className={[
-                "group relative overflow-hidden border border-amber-900/70 bg-[linear-gradient(180deg,#3a1d10_0%,#1e0f09_48%,#120806_100%)] px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-100 shadow-[inset_0_1px_0_rgba(255,222,160,0.16),inset_0_-2px_0_rgba(0,0,0,0.35),0_5px_18px_rgba(0,0,0,0.45)] transition-all duration-150",
-                "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-amber-200/30",
-                disabled
-                    ? "cursor-not-allowed opacity-40"
-                    : "hover:-translate-y-0.5 hover:border-amber-500/80 hover:brightness-110 hover:shadow-[inset_0_1px_0_rgba(255,222,160,0.2),0_7px_24px_rgba(145,66,15,0.25)] active:translate-y-px",
-            ].join(" ")}
+            className={disabled ? "hc-button hc-button--secondary" : "hc-button hc-button--secondary"}
         >
             {children}
         </button>

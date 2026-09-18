@@ -13,7 +13,7 @@ import type {
 import { enemies } from "../data/enemies";
 import { cards } from "../data/cards";
 import { getPlayerArtwork, type PlayerAnimationState } from "../data/playerAssets";
-import battlefieldImage from "../assets/backgrounds/battlefield.png";
+import battlefieldImage from "../assets/combat/battlefield.png";
 import {
     getEnemyAnimationState,
     getEnemyArtwork,
@@ -23,7 +23,6 @@ import CombatCharacter, {
     type CharacterEffect,
     type EnemyActionEffect,
 } from "./CombatCharacter";
-import CombatHeader from "./CombatHeader";
 import StatusEffects from "./StatusEffects";
 import CombatTable from "./CombatTable";
 import CombatHealthBar from "./CombatHealthBar";
@@ -706,14 +705,13 @@ export default function CombatScreen({
     return (
         <main className="h-screen overflow-hidden bg-[#070504] text-stone-200">
             <div className="relative h-screen w-full overflow-hidden bg-[#070504]">
-                <CombatHeader
-                    gold={gold}
-                    onOpenInventory={() =>
-                        setShowInventory(
-                            true,
-                        )
-                    }
-                />
+                <button
+                    type="button"
+                    className="combat-utility-button absolute right-6 top-5 z-40"
+                    onClick={() => setShowInventory(true)}
+                >
+                    Inventory
+                </button>
 
                 {/* BACKGROUND */}
                 <div className="absolute inset-0">
@@ -863,7 +861,7 @@ export default function CombatScreen({
                 </div>
 
                 {/* BATTLEFIELD */}
-                <section className="combat-stage absolute inset-x-0 top-[92px] bottom-[370px] flex items-center justify-center">
+                <section className="combat-stage absolute inset-x-0 top-0 bottom-[370px] flex items-center justify-center">
                     <div className="combat-stage__backdrop" aria-hidden="true" />
                     <div className="combat-stage__ground" aria-hidden="true" />
                     <div className="combat-stage__dust combat-stage__dust--one" aria-hidden="true" />

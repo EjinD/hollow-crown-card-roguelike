@@ -1,5 +1,13 @@
-import playerImage from "../assets/characters/player.png";
+import bastionBackground from "../assets/backgrounds/hub/bastion-background.png";
 import type { MetaProgressState } from "../types/meta";
+
+type HubStationKind =
+    | "packs"
+    | "collection"
+    | "armory"
+    | "achievements"
+    | "encyclopedia"
+    | "shop";
 
 interface HubScreenProps {
     meta: MetaProgressState;
@@ -7,67 +15,124 @@ interface HubScreenProps {
     onOpenCardPacks: () => void;
     onOpenCollection: () => void;
     onOpenArmory: () => void;
+    onOpenShop: () => void;
 }
 
 interface HubStationProps {
-    label: string;
+    kind: HubStationKind;
     title: string;
-    description: string;
-    value?: string;
+    subtitle?: string;
     onClick?: () => void;
     disabled?: boolean;
 }
 
+function HubIcon({ kind }: { kind: HubStationKind }) {
+    const common = {
+        width: 48,
+        height: 48,
+        viewBox: "0 0 48 48",
+        fill: "none",
+        xmlns: "http://www.w3.org/2000/svg",
+        "aria-hidden": true as const,
+    };
+
+    switch (kind) {
+        case "packs":
+            return (
+                <svg {...common}>
+                    <path d="M10 15.5 27 10l11 7-17 5.5-11-7Z" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M13 18v14l17 5.5V23.5L13 18Z" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="m30 23.5 8-6.5v14L30 37.5" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="m21 22.5 6-4.5 7 4.5-7 4.5-6-4.5Z" stroke="currentColor" strokeWidth="1.4" />
+                </svg>
+            );
+        case "collection":
+            return (
+                <svg {...common}>
+                    <path d="M13 9h20v29H13c-2.2 0-4-1.8-4-4V13c0-2.2 1.8-4 4-4Z" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M13 9v29M18 15h10M18 21h10M18 27h7" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M33 14h3c1.1 0 2 .9 2 2v22H21" stroke="currentColor" strokeWidth="1.3" />
+                </svg>
+            );
+        case "armory":
+            return (
+                <svg {...common}>
+                    <path d="M9 34h30v4H9v-4Z" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M12 34 18 19h12l6 15" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M15 19h18M18 15h12l-2-5H20l-2 5Z" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M20 25h8M19 30h10" stroke="currentColor" strokeWidth="1.4" />
+                </svg>
+            );
+        case "achievements":
+            return (
+                <svg {...common}>
+                    <path d="M17 11h14v8c0 6-4.1 10-7 10s-7-4-7-10v-8Z" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M17 15H11v2c0 4 2.6 7 6 7M31 15h6v2c0 4-2.6 7-6 7M24 29v7M19 38h10" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="m24 14 1.5 3.1 3.4.5-2.5 2.4.6 3.4-3-1.6-3 1.6.6-3.4-2.5-2.4 3.4-.5L24 14Z" stroke="currentColor" strokeWidth="1.1" />
+                </svg>
+            );
+        case "encyclopedia":
+            return (
+                <svg {...common}>
+                    <path d="M9 12c4-2 8-2 15 2v25c-7-4-11-4-15-2V12Z" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M39 12c-4-2-8-2-15 2v25c7-4 11-4 15-2V12Z" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M24 14v25M13 18h7M28 18h7M13 24h7M28 24h7" stroke="currentColor" strokeWidth="1.35" />
+                </svg>
+            );
+        case "shop":
+            return (
+                <svg {...common}>
+                    <path d="M11 20h26l-2 18H13l-2-18Z" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M15 20v-4c0-4 3.2-7 9-7s9 3 9 7v4" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M17 25h14M17 30h10" stroke="currentColor" strokeWidth="1.35" />
+                </svg>
+            );
+    }
+}
+
 function HubStation({
-    label,
+    kind,
     title,
-    description,
-    value,
+    subtitle,
     onClick,
     disabled = false,
 }: HubStationProps) {
     const content = (
-        <div
+        <span
             className={[
-                "w-full border bg-[#100c09]/90 p-5 text-left transition",
-                disabled
-                    ? "border-stone-900/80 opacity-60"
-                    : "border-stone-800 hover:border-orange-800/80 hover:bg-[#16100c]",
-            ].join(" ")}
+                "hc-hub-v2-station",
+                disabled ? "hc-hub-v2-station--disabled" : "",
+            ]
+                .filter(Boolean)
+                .join(" ")}
         >
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <p className="text-[9px] uppercase tracking-[0.32em] text-stone-600">
-                        {label}
-                    </p>
-
-                    <h3 className="mt-2 font-serif text-lg font-bold uppercase tracking-[0.12em] text-stone-200">
-                        {title}
-                    </h3>
-
-                    <p className="mt-2 text-xs leading-5 text-stone-500">
-                        {description}
-                    </p>
-                </div>
-
-                {value && (
-                    <span className="shrink-0 text-sm font-bold text-amber-400">
-                        {value}
-                    </span>
-                )}
-            </div>
-        </div>
+            <span className="hc-hub-v2-station__icon-shell">
+                <span className="hc-hub-v2-station__icon-glow" aria-hidden="true" />
+                <span className="hc-hub-v2-station__icon">
+                    <HubIcon kind={kind} />
+                </span>
+            </span>
+            <span className="hc-hub-v2-station__title">{title}</span>
+            {subtitle && (
+                <span className="hc-hub-v2-station__subtitle">{subtitle}</span>
+            )}
+            {!disabled && <span className="hc-hub-v2-station__mark" aria-hidden="true">◆</span>}
+        </span>
     );
 
-    if (!onClick || disabled) {
-        return <div>{content}</div>;
+    if (disabled || !onClick) {
+        return (
+            <div className="hc-hub-v2-station-button" aria-disabled="true">
+                {content}
+            </div>
+        );
     }
 
     return (
         <button
             type="button"
+            className="hc-hub-v2-station-button"
             onClick={onClick}
-            className="w-full text-left"
         >
             {content}
         </button>
@@ -80,143 +145,98 @@ export default function HubScreen({
     onOpenCardPacks,
     onOpenCollection,
     onOpenArmory,
+    onOpenShop,
 }: HubScreenProps) {
-    const unlockedAchievements =
-        meta.achievements.filter(
-            (achievement) => achievement.unlocked,
-        ).length;
+    const unlockedAchievements = meta.achievements.filter(
+        (achievement) => achievement.unlocked,
+    ).length;
 
-    const discoveredCards = Object.values(
-        meta.cardCollection,
-    ).filter((count) => count > 0).length;
+    const discoveredCards = Object.values(meta.cardCollection).filter(
+        (count) => count > 0,
+    ).length;
 
-    const maxHpLevel =
-        meta.upgrades.find(
-            (upgrade) => upgrade.id === "max-hp",
-        )?.level ?? 0;
-
+    const maxHpLevel = meta.upgrades.find(
+        (upgrade) => upgrade.id === "max-hp",
+    )?.level ?? 0;
 
     return (
-        <main className="min-h-screen overflow-hidden bg-[#070605] text-stone-200">
-            <div className="relative min-h-screen">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(110,43,17,0.2),_transparent_48%)]" />
-                <div className="absolute inset-x-0 bottom-0 h-[55%] bg-[linear-gradient(to_top,_rgba(0,0,0,0.98),_transparent)]" />
+        <main className="hc-stage hc-hub-screen-v2">
+            <div
+                className="hc-stage__background hc-hub-v2-background"
+                style={{ backgroundImage: `url(${bastionBackground})` }}
+                aria-hidden="true"
+            />
+            <div className="hc-stage__vignette" aria-hidden="true" />
+            <div className="hc-hub-v2-atmosphere" aria-hidden="true" />
 
-                <header className="relative z-20 flex items-center justify-between border-b border-stone-900/80 bg-[#080706]/80 px-8 py-6">
-                    <div>
-                        <p className="text-[9px] uppercase tracking-[0.45em] text-stone-600">
-                            Sanctuary
-                        </p>
-
-                        <h1 className="mt-2 font-serif text-3xl font-bold uppercase tracking-[0.18em] text-stone-100">
-                            The Ashen Bastion
-                        </h1>
-
-                        <p className="mt-1 text-xs uppercase tracking-[0.24em] text-stone-600">
-                            Rest · Prepare · Descend
-                        </p>
+            <section className="hc-hub-v2-layout">
+                <header className="hc-hub-v2-heading">
+                    <div className="hc-hub-v2-ornament" aria-hidden="true">
+                        <span />
+                        <i />
+                        <span />
                     </div>
-
-                    <div className="flex items-center gap-8">
-                        <div className="text-right">
-                            <p className="text-[9px] uppercase tracking-[0.3em] text-stone-600">
-                                Hub Gold
-                            </p>
-
-                            <p className="mt-1 text-xl font-bold text-amber-400">
-                                ◆ {meta.hubGold}
-                            </p>
-                        </div>
-
-                        <div className="text-right">
-                            <p className="text-[9px] uppercase tracking-[0.3em] text-stone-600">
-                                Expeditions
-                            </p>
-
-                            <p className="mt-1 text-xl font-bold text-stone-200">
-                                {meta.totalRuns}
-                            </p>
-                        </div>
-                    </div>
+                    <h1>ASHEN BASTION</h1>
                 </header>
 
-                <section className="relative z-10 mx-auto grid min-h-[calc(100vh-103px)] max-w-7xl grid-cols-12 gap-8 px-8 py-8">
-                    <div className="col-span-3 flex flex-col justify-center gap-4">
+                <div className="hc-hub-v2-stage">
+                    <div className="hc-hub-v2-flank hc-hub-v2-flank--left">
                         <HubStation
-                            label="Character"
-                            title="Armory"
-                            description="Permanent upgrades that shape your hero between expeditions."
-                            value={`HP LV ${maxHpLevel}`}
-                            onClick={onOpenArmory}
-                        />
-
-                        <HubStation
-                            label="Collection"
-                            title="Card Packs"
-                            description="Open Ashen Packs and reveal new cards. Duplicates become Dust immediately."
-                            value={`${meta.hubGold} ◆`}
+                            kind="packs"
+                            title="PACKS"
+                            subtitle={`${meta.hubGold} GOLD`}
                             onClick={onOpenCardPacks}
                         />
-
                         <HubStation
-                            label="Collection"
-                            title="Collection"
-                            description="Browse the permanent card collection, craft missing cards, and build the deck for your next descent."
-                            value={`${discoveredCards} found`}
+                            kind="collection"
+                            title="COLLECTION"
+                            subtitle={`${discoveredCards} DISCOVERED`}
                             onClick={onOpenCollection}
                         />
-
-                    </div>
-
-                    <div className="col-span-6 flex flex-col items-center justify-center">
-                        <div className="relative flex h-[500px] w-full items-end justify-center">
-                            <div className="absolute bottom-[8%] h-52 w-96 rounded-full bg-orange-500/10 blur-3xl" />
-
-                            <img
-                                src={playerImage}
-                                alt="Player"
-                                draggable={false}
-                                className="relative z-10 h-[480px] w-[480px] select-none object-contain"
-                            />
-                        </div>
-
-                        <div className="relative z-20 -mt-2 flex flex-col items-center text-center">
-                            <p className="text-[9px] uppercase tracking-[0.45em] text-stone-600">
-                                The road below awaits
-                            </p>
-
-                            <h2 className="mt-2 font-serif text-2xl font-bold uppercase tracking-[0.16em] text-stone-100">
-                                The Dungeon Gate
-                            </h2>
-
-                            <button
-                                type="button"
-                                onClick={onStartRun}
-                                className="mt-6 border border-orange-800 bg-[#24120d] px-12 py-4 text-sm font-bold uppercase tracking-[0.25em] text-orange-200 shadow-[0_0_32px_rgba(180,70,20,0.1)] transition hover:border-orange-600 hover:bg-[#351711] hover:text-orange-100"
-                            >
-                                Open Dungeon Gate
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="col-span-3 flex flex-col justify-center gap-4">
                         <HubStation
-                            label="Legacy"
-                            title="Achievements"
-                            description="Record boss kills and the milestones of your expeditions."
-                            value={`${unlockedAchievements}/${meta.achievements.length}`}
-                        />
-
-                        <HubStation
-                            label="Knowledge"
-                            title="Encyclopedia"
-                            description="Record relics, enemies, bosses and discoveries made during your expeditions."
+                            kind="achievements"
+                            title="ACHIEVEMENTS"
+                            subtitle={`${unlockedAchievements}/${meta.achievements.length}`}
                             disabled
                         />
-
                     </div>
-                </section>
-            </div>
+
+                    <div className="hc-hub-v2-center">
+                        <div className="hc-hub-v2-gate-aura" aria-hidden="true" />
+                        <button
+                            type="button"
+                            className="hc-world-action hc-world-action--gate"
+                            onClick={onStartRun}
+                        >
+                            <span>DUNGEON GATE</span>
+                        </button>
+                    </div>
+
+                    <div className="hc-hub-v2-flank hc-hub-v2-flank--right">
+                        <HubStation
+                            kind="armory"
+                            title="ARMORY"
+                            subtitle={`HP LV ${maxHpLevel}`}
+                            onClick={onOpenArmory}
+                        />
+                        <HubStation
+                            kind="encyclopedia"
+                            title="ENCYCLOPEDIA"
+                            subtitle="ARCHIVE"
+                            disabled
+                        />
+                        <HubStation
+                            kind="shop"
+                            title="SHOP"
+                            subtitle="SUPPLIES"
+                            onClick={onOpenShop}
+                        />
+                    </div>
+                </div>
+
+                <footer className="hc-hub-v2-footer">
+                </footer>
+            </section>
         </main>
     );
 }

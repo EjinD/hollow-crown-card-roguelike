@@ -1,0 +1,212 @@
+.collection-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(4, 3, 2, 0.84);
+    backdrop-filter: blur(7px);
+}
+
+.collection-inspect-modal,
+.collection-validation-modal {
+    position: relative;
+    border: 1px solid rgba(193, 127, 54, 0.65);
+    background: linear-gradient(180deg, #17100b, #0b0705 100%);
+    box-shadow: 0 25px 90px rgba(0, 0, 0, 0.68), inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.collection-inspect-modal {
+    width: min(900px, 92vw);
+    max-height: min(92vh, 760px);
+    padding: 22px;
+}
+
+.collection-inspect-close {
+    position: absolute;
+    top: 10px;
+    right: 11px;
+    width: 28px;
+    height: 28px;
+    border: 1px solid rgba(130, 90, 52, 0.44);
+    background: rgba(8, 5, 4, 0.6);
+    color: rgba(224, 207, 182, 0.56);
+    font-size: 17px;
+    cursor: pointer;
+}
+
+.collection-inspect-layout {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.85fr) minmax(300px, 1fr);
+    gap: 24px;
+    align-items: center;
+}
+
+.collection-inspect-card-wrap {
+    width: min(330px, 100%);
+    aspect-ratio: 0.74;
+    justify-self: center;
+}
+
+.collection-inspect-card-wrap .collection-card-face {
+    font-size: inherit;
+}
+
+.collection-inspect-details h2 {
+    margin: 7px 0 7px;
+    color: #ebddc5;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(25px, 3vw, 38px);
+    line-height: 0.98;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.collection-inspect-category {
+    margin-top: 5px;
+    color: rgba(210, 190, 160, 0.45);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+}
+
+.collection-inspect-divider {
+    height: 1px;
+    margin: 16px 0;
+    background: linear-gradient(90deg, rgba(189, 121, 52, 0.55), transparent);
+}
+
+.collection-inspect-effects p {
+    margin: 0 0 10px;
+    color: rgba(225, 212, 193, 0.72);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 14px;
+    line-height: 1.48;
+}
+
+.collection-inspect-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 18px;
+}
+
+.collection-inspect-stats > div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    border: 1px solid rgba(113, 80, 49, 0.35);
+    background: rgba(8, 5, 4, 0.42);
+}
+
+.collection-inspect-stats span {
+    color: rgba(206, 186, 157, 0.34);
+    font-size: 6px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.collection-inspect-stats strong {
+    color: #e1bd74;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 15px;
+}
+
+.collection-inspect-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-top: 18px;
+}
+
+.collection-action-button {
+    border: 1px solid rgba(132, 82, 41, 0.52);
+    padding: 12px 13px;
+    background: rgba(22, 11, 7, 0.94);
+    color: #d8c6a9;
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.collection-action-button:hover:not(:disabled) {
+    border-color: #ca7628;
+    color: #f1d2a0;
+}
+
+.collection-action-button--primary {
+    background: linear-gradient(180deg, #3a180c, #211007);
+    border-color: rgba(202, 111, 33, 0.8);
+}
+
+.collection-action-button--craft {
+    background: linear-gradient(180deg, rgba(63, 28, 14, 0.95), rgba(23, 12, 8, 0.98));
+}
+
+.collection-action-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.34;
+}
+
+.collection-inspect-hint {
+    margin-top: 12px;
+    color: rgba(204, 186, 162, 0.29);
+    font-size: 7px;
+    line-height: 1.45;
+}
+
+.collection-validation-modal {
+    width: min(440px, 92vw);
+    padding: 28px;
+    text-align: center;
+}
+
+.collection-validation-modal h2 {
+    margin: 8px 0 0;
+    color: #eadcc3;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 29px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.collection-validation-modal > p {
+    max-width: 340px;
+    margin: 12px auto 0;
+    color: rgba(217, 201, 176, 0.58);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.collection-validation-count {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    margin-top: 18px;
+    color: #e5bf79;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 27px;
+}
+
+.collection-validation-count small {
+    color: rgba(211, 191, 161, 0.34);
+    font-family: system-ui, sans-serif;
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.collection-validation-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-top: 20px;
+}
+

@@ -1,0 +1,214 @@
+.collection-card-grid {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    padding: 9px;
+}
+
+.collection-card-placeholder {
+    min-width: 0;
+    border: 1px dashed rgba(105, 74, 49, 0.18);
+    background: rgba(7, 5, 4, 0.18);
+}
+
+.collection-card-button {
+    min-width: 0;
+    min-height: 0;
+    border: 0;
+    padding: 0;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+}
+
+.collection-card-face {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: 5px;
+    background:
+        linear-gradient(135deg, rgba(192, 130, 58, 0.58), rgba(76, 48, 27, 0.9) 23%, rgba(28, 17, 11, 0.98) 50%, rgba(119, 70, 31, 0.86) 78%, rgba(188, 127, 54, 0.58));
+    clip-path: polygon(4% 0, 96% 0, 100% 4%, 100% 96%, 96% 100%, 4% 100%, 0 96%, 0 4%);
+    transition: 180ms ease;
+}
+
+.collection-card-face:hover,
+.collection-card-face.is-selected {
+    filter: brightness(1.05);
+    transform: translateY(-2px);
+}
+
+.collection-card-face::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, rgba(255,255,255,0.05), transparent 14%, transparent 86%, rgba(255,255,255,0.04)),
+        linear-gradient(180deg, rgba(255,255,255,0.03), transparent 24%, rgba(0,0,0,0.16) 90%);
+    clip-path: inherit;
+}
+
+.collection-card-face__inner {
+    position: relative;
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto auto auto minmax(0, 0.7fr) auto;
+    gap: 3px;
+    padding: 5px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #18100b, #0e0906 70%, #0a0705 100%);
+    clip-path: inherit;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), inset 0 0 26px rgba(0, 0, 0, 0.62);
+}
+
+.collection-card-face--compact .collection-card-face__inner {
+    grid-template-rows: minmax(0, 1fr) auto auto auto;
+}
+
+.collection-card-face__art {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid rgba(120, 81, 42, 0.62);
+    background: #070504;
+}
+
+.collection-card-face__art-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent 50%, rgba(11, 7, 4, 0.45));
+}
+
+.collection-card-face__name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: #e8d8bf;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(10px, 0.72vw, 14px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0.045em;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.collection-rarity {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    color: #b7a58e;
+    font-size: 6px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+}
+
+.collection-rarity-crystal {
+    width: 8px;
+    height: 8px;
+    transform: rotate(45deg);
+    border: 1px solid currentColor;
+    box-shadow: 0 0 9px currentColor;
+}
+
+.collection-rarity-crystal--common {
+    color: #b1aa9e;
+    background: linear-gradient(135deg, rgba(217, 210, 198, 0.88), rgba(101, 98, 93, 0.62));
+}
+
+.collection-rarity-crystal--uncommon {
+    color: #62c17e;
+    background: linear-gradient(135deg, #b7f4c3, #2f7f45 70%);
+}
+
+.collection-rarity-crystal--rare {
+    color: #5fa8ff;
+    background: linear-gradient(135deg, #b9ddff, #2f5fb5 70%);
+}
+
+.collection-rarity-crystal--legendary {
+    color: #e0ad45;
+    background: linear-gradient(135deg, #fff0ad, #a76d1f 72%);
+}
+
+.collection-card-face__type {
+    color: rgba(208, 186, 154, 0.42);
+    font-size: 6px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.collection-card-face__description {
+    overflow: hidden;
+    border-top: 1px solid rgba(122, 85, 47, 0.33);
+    padding: 6px 5px 2px;
+    color: rgba(222, 210, 193, 0.72);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(8px, 0.57vw, 11px);
+    line-height: 1.24;
+    text-align: center;
+}
+
+.collection-card-face__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(120, 82, 45, 0.28);
+    color: rgba(198, 182, 160, 0.32);
+    font-size: 6px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.collection-card-face__footer .is-active {
+    color: #dd8e39;
+}
+
+.collection-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 38px;
+    border-top: 1px solid rgba(132, 82, 41, 0.34);
+    background: rgba(11, 7, 5, 0.72);
+}
+
+.collection-pagination button {
+    display: grid;
+    width: 27px;
+    height: 25px;
+    place-items: center;
+    border: 1px solid rgba(119, 82, 48, 0.44);
+    background: #0e0906;
+    color: rgba(213, 198, 177, 0.48);
+    font-size: 8px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.collection-pagination button:hover:not(:disabled),
+.collection-pagination button.is-active {
+    border-color: rgba(205, 125, 42, 0.76);
+    background: #291308;
+    color: #e5c993;
+}
+
+.collection-pagination button:disabled {
+    cursor: not-allowed;
+    opacity: 0.24;
+}

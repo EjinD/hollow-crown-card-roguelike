@@ -1,0 +1,98 @@
+.collection-filter-row button,
+.collection-back-button,
+.collection-pagination button,
+.collection-deck-actions button,
+.collection-action-button,
+.collection-inspect-close {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: 2px;
+    background:
+        linear-gradient(180deg, rgba(85, 45, 22, 0.92) 0%, rgba(39, 20, 11, 0.98) 48%, rgba(18, 10, 7, 0.98) 100%);
+    border: 1px solid rgba(172, 109, 48, 0.72);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 232, 191, 0.12),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.55),
+        0 2px 7px rgba(0, 0, 0, 0.42);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.72);
+    transition:
+        transform 140ms ease,
+        border-color 140ms ease,
+        box-shadow 140ms ease,
+        color 140ms ease,
+        filter 140ms ease;
+}
+
+.collection-filter-row button::before,
+.collection-back-button::before,
+.collection-pagination button::before,
+.collection-deck-actions button::before,
+.collection-action-button::before,
+.collection-inspect-close::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    pointer-events: none;
+    z-index: -1;
+    border: 1px solid rgba(255, 212, 145, 0.07);
+}
+
+.collection-filter-row button::after,
+.collection-back-button::after,
+.collection-pagination button::after,
+.collection-deck-actions button::after,
+.collection-action-button::after,
+.collection-inspect-close::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    right: 7px;
+    top: 0;
+    height: 1px;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgba(255, 220, 169, 0.28), transparent);
+}
+
+.collection-filter-row button:hover:not(:disabled),
+.collection-back-button:hover:not(:disabled),
+.collection-pagination button:hover:not(:disabled),
+.collection-deck-actions button:hover:not(:disabled),
+.collection-action-button:hover:not(:disabled),
+.collection-inspect-close:hover:not(:disabled) {
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+    border-color: rgba(224, 151, 66, 0.95);
+    color: #f2ddb4;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 237, 207, 0.18),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.65),
+        0 4px 12px rgba(0, 0, 0, 0.48),
+        0 0 16px rgba(188, 81, 18, 0.12);
+}
+
+.collection-filter-row button.is-active,
+.collection-pagination button.is-active,
+.collection-action-button--primary,
+.collection-deck-actions .collection-deck-save {
+    background:
+        linear-gradient(180deg, rgba(150, 67, 23, 0.96) 0%, rgba(94, 35, 15, 0.98) 50%, rgba(46, 18, 9, 0.99) 100%);
+    border-color: rgba(233, 157, 71, 0.92);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 231, 190, 0.2),
+        inset 0 -2px 0 rgba(38, 11, 4, 0.72),
+        0 0 18px rgba(196, 81, 21, 0.13),
+        0 4px 12px rgba(0, 0, 0, 0.44);
+    color: #f3d9a7;
+}
+
+.collection-filter-row button:active:not(:disabled),
+.collection-back-button:active:not(:disabled),
+.collection-pagination button:active:not(:disabled),
+.collection-deck-actions button:active:not(:disabled),
+.collection-action-button:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow:
+        inset 0 2px 0 rgba(0, 0, 0, 0.38),
+        inset 0 0 0 1px rgba(255, 228, 183, 0.05);
+}

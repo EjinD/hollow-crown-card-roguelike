@@ -1,3 +1,10 @@
+import loadingBackground from "../assets/backgrounds/loading/loading-background.png";
+import landingBackground from "../assets/backgrounds/landing/landing-background.png";
+import bastionBackground from "../assets/backgrounds/hub/bastion-background.png";
+import globalBackground from "../assets/backgrounds/global/ashen-world-background.png";
+import gameLogo from "../assets/ui/logo/the-hollow-crown-logo.png";
+import crownSigil from "../assets/ui/logo/crown-sigil.png";
+
 const assetModules = import.meta.glob(
     "../assets/**/*.{png,webp,jpg,jpeg,svg}",
     {
@@ -25,8 +32,6 @@ const cardArtworkById: Record<string, string> = Object.fromEntries(
     }),
 );
 
-// These aliases keep the resolver tolerant of the two historical filename
-// spellings while the source assets are being normalized.
 const cardArtworkAliases: Record<string, string> = {
     "molten-barrier": "molted-barrier",
     "crowns-judgment": "crowns-judgement",
@@ -42,6 +47,16 @@ export function getCardArtwork(cardId: string): string | undefined {
 export function resolveCardArtwork(cardId: string): string | undefined {
     return getCardArtwork(cardId);
 }
+
+/** Stage 1 boot-critical assets only. Decorative/feature assets load lazily. */
+export const coreAssetUrls = [
+    loadingBackground,
+    landingBackground,
+    bastionBackground,
+    globalBackground,
+    gameLogo,
+    crownSigil,
+];
 
 let preloadPromise: Promise<{
     loaded: number;
@@ -60,15 +75,11 @@ export function preloadGameAssets(
         return preloadPromise;
     }
 
-    const total = gameAssetUrls.length;
+    const preloadTargets = coreAssetUrls;
+    const total = preloadTargets.length;
 
     if (total === 0) {
-        preloadPromise = Promise.resolve({
-            loaded: 0,
-            total: 0,
-            failed: 0,
-        });
-
+        preloadPromise = Promise.resolve({ loaded: 0, total: 0, failed: 0 });
         return preloadPromise;
     }
 
@@ -81,23 +92,17 @@ export function preloadGameAssets(
             onProgress?.(loaded, total, failed);
 
             if (loaded >= total) {
-                resolve({
-                    loaded,
-                    total,
-                    failed,
-                });
+                resolve({ loaded, total, failed });
             }
         };
 
-        for (const url of gameAssetUrls) {
+        for (const url of preloadTargets) {
             const image = new Image();
-
             image.onload = complete;
             image.onerror = () => {
                 failed += 1;
                 complete();
             };
-
             image.src = url;
         }
     });

@@ -67,7 +67,7 @@ export default function DungeonGateScreen({
                     <button
                         type="button"
                         onClick={onBack}
-                        className="text-[10px] uppercase tracking-[0.28em] text-stone-500 transition hover:text-stone-200"
+                        className="hc-button hc-button--secondary min-h-[42px] px-5 text-[9px]"
                     >
                         ← Back to Bastion
                     </button>
@@ -176,7 +176,7 @@ export default function DungeonGateScreen({
                                                             dungeon.id,
                                                         )
                                                     }
-                                                    className="w-full border border-orange-800 bg-[#24120d] px-5 py-3 text-[10px] font-bold uppercase tracking-[0.24em] text-orange-200 transition hover:border-orange-500 hover:bg-[#351711]"
+                                                    className="hc-button hc-button--primary w-full min-h-[50px] px-5 text-[10px]"
                                                 >
                                                     {completed
                                                         ? "Descend Again"

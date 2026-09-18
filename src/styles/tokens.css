@@ -1,0 +1,33 @@
+:root {
+    /* The Hollow Crown — core visual tokens. */
+    --hc-bg-0: #070504;
+    --hc-bg-1: #0d0906;
+    --hc-bg-2: #17100c;
+    --hc-bg-3: #24140c;
+
+    --hc-bronze-100: #6b4525;
+    --hc-bronze-200: #96632f;
+    --hc-bronze-300: #c08a45;
+    --hc-gold: #d5a35f;
+
+    --hc-ember-100: #6e250f;
+    --hc-ember-200: #a63c14;
+    --hc-ember-300: #e45a1d;
+
+    --hc-text-primary: #ded6c8;
+    --hc-text-secondary: #bca98b;
+    --hc-text-muted: #7f705d;
+    --hc-text-soft: #b9a58a;
+
+    --hc-panel: rgba(12, 8, 6, 0.9);
+    --hc-panel-soft: rgba(19, 11, 8, 0.78);
+    --hc-border: rgba(192, 138, 69, 0.45);
+    --hc-border-strong: rgba(220, 164, 82, 0.72);
+    --hc-ember-bright: #ef7628;
+
+    --hc-font-display: Georgia, "Times New Roman", serif;
+    --hc-font-ui: Inter, system-ui, sans-serif;
+
+    --hc-shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --hc-shadow-deep: 0 14px 32px rgba(0, 0, 0, 0.48);
+}

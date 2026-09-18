@@ -1,0 +1,216 @@
+.collection-card-face {
+    padding: 7px;
+    background:
+        linear-gradient(135deg, #b47a3c 0%, #4a2a18 8%, #24140c 23%, #0d0906 50%, #332012 78%, #9c682f 100%);
+    border-radius: 0;
+    clip-path: polygon(0 12px, 12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px));
+    box-shadow:
+        0 10px 24px rgba(0, 0, 0, 0.48),
+        inset 0 0 0 1px rgba(239, 188, 112, 0.18),
+        inset 0 0 22px rgba(0, 0, 0, 0.62);
+}
+
+.collection-card-face::before {
+    inset: 2px;
+    z-index: 0;
+    border: 1px solid rgba(222, 164, 82, 0.48);
+    background:
+        linear-gradient(135deg, rgba(248, 213, 155, 0.08), transparent 22%),
+        linear-gradient(315deg, rgba(218, 143, 53, 0.08), transparent 22%);
+    clip-path: inherit;
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 219, 160, 0.05),
+        inset 0 0 14px rgba(0, 0, 0, 0.42);
+}
+
+.collection-card-face::after {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    z-index: 1;
+    pointer-events: none;
+    border: 1px solid rgba(118, 77, 40, 0.92);
+    clip-path: inherit;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 224, 167, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.collection-card-face__inner {
+    z-index: 2;
+    grid-template-rows: minmax(0, 1.25fr) auto auto auto minmax(74px, 0.72fr) auto;
+    gap: 4px;
+    padding: 0;
+    background:
+        linear-gradient(180deg, rgba(31, 18, 11, 0.99) 0%, rgba(16, 10, 7, 0.99) 44%, rgba(10, 7, 5, 1) 100%);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 235, 202, 0.03),
+        inset 0 0 34px rgba(0, 0, 0, 0.72);
+}
+
+.collection-card-face__art {
+    border: 1px solid rgba(196, 130, 58, 0.62);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 222, 169, 0.08),
+        inset 0 -20px 34px rgba(0, 0, 0, 0.2),
+        0 4px 12px rgba(0, 0, 0, 0.34);
+}
+
+.collection-card-face__art::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    border: 1px solid rgba(245, 198, 126, 0.11);
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.34);
+}
+
+.collection-card-face__art-glow {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.03) 42%, rgba(11, 6, 4, 0.5) 100%),
+        linear-gradient(90deg, rgba(255, 139, 45, 0.06), transparent 18%, transparent 82%, rgba(255, 184, 83, 0.05));
+}
+
+.collection-card-face__name {
+    position: relative;
+    margin: 1px 7px 0;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px 5px;
+    border-top: 1px solid rgba(222, 164, 82, 0.7);
+    border-bottom: 1px solid rgba(86, 54, 29, 0.88);
+    background:
+        linear-gradient(180deg, rgba(91, 54, 27, 0.97), rgba(46, 26, 14, 0.98));
+    color: #f1e0c4;
+    font-size: clamp(12px, 0.82vw, 16px);
+    letter-spacing: 0.055em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+    clip-path: polygon(4% 0, 96% 0, 100% 18%, 100% 82%, 96% 100%, 4% 100%, 0 82%, 0 18%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 234, 190, 0.1),
+        inset 0 -2px 0 rgba(16, 8, 4, 0.5);
+}
+
+.collection-rarity {
+    gap: 7px;
+    min-height: 19px;
+    color: #cbb796;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    text-shadow: 0 0 7px rgba(0, 0, 0, 0.8);
+}
+
+.collection-rarity-crystal {
+    width: 13px;
+    height: 13px;
+    border-width: 1px;
+    transform: rotate(45deg);
+    box-shadow:
+        0 0 0 1px rgba(255, 235, 196, 0.07),
+        0 0 10px currentColor,
+        inset 1px 1px 0 rgba(255, 255, 255, 0.42),
+        inset -2px -2px 0 rgba(0, 0, 0, 0.28);
+}
+
+.collection-rarity-crystal--common {
+    background: linear-gradient(135deg, #f2ece3 0%, #aaa39a 44%, #57524d 100%);
+}
+
+.collection-rarity-crystal--uncommon {
+    background: linear-gradient(135deg, #d9ffd7 0%, #67c57b 44%, #1b6333 100%);
+}
+
+.collection-rarity-crystal--rare {
+    background: linear-gradient(135deg, #d9efff 0%, #66a9ff 44%, #214c92 100%);
+}
+
+.collection-rarity-crystal--legendary {
+    background: linear-gradient(135deg, #fff6c6 0%, #e7ae4f 45%, #8b4f14 100%);
+}
+
+.collection-card-face__type {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    min-width: 74px;
+    margin: 0 auto;
+    padding: 4px 11px 3px;
+    border: 1px solid rgba(122, 81, 43, 0.55);
+    background: linear-gradient(180deg, rgba(43, 24, 14, 0.96), rgba(20, 12, 8, 0.98));
+    color: rgba(224, 202, 170, 0.68);
+    font-size: 7px;
+    letter-spacing: 0.24em;
+    box-shadow: inset 0 1px 0 rgba(255, 228, 184, 0.06);
+}
+
+.collection-card-face__description {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    overflow: hidden;
+    margin: 0 5px;
+    padding: 7px 7px 6px;
+    border-top: 1px solid rgba(143, 96, 49, 0.4);
+    border-bottom: 1px solid rgba(83, 53, 29, 0.5);
+    background: linear-gradient(180deg, rgba(10, 7, 5, 0.18), rgba(41, 22, 11, 0.22));
+    color: rgba(231, 219, 202, 0.86);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(10px, 0.68vw, 13px);
+    line-height: 1.35;
+    text-align: left;
+}
+
+.collection-card-face__effect {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    align-items: start;
+    gap: 7px;
+}
+
+.collection-effect-icon {
+    display: grid;
+    width: 19px;
+    height: 19px;
+    place-items: center;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.22), rgba(0, 0, 0, 0.42) 64%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 0 8px currentColor;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.collection-effect-icon--fire { color: #e57e2f; }
+.collection-effect-icon--guard { color: #72b9e8; }
+.collection-effect-icon--action { color: #f0bf5d; }
+.collection-effect-icon--draw { color: #b78fe2; }
+.collection-effect-icon--heal { color: #75c98d; }
+.collection-effect-icon--arcane { color: #7fc4cf; }
+.collection-effect-icon--void { color: #a878d6; }
+
+.collection-card-face__effect > span:last-child {
+    align-self: center;
+}
+
+.collection-card-face__footer {
+    margin: 0 7px 2px;
+    padding: 5px 2px 3px;
+    border-top-color: rgba(151, 99, 49, 0.34);
+    color: rgba(211, 193, 165, 0.42);
+    font-size: 7px;
+    letter-spacing: 0.12em;
+}
+
+.collection-card-face__footer .is-active {
+    color: #e5a64e;
+    text-shadow: 0 0 7px rgba(217, 127, 33, 0.38);
+}

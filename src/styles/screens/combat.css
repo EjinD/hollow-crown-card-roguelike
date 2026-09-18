@@ -1,0 +1,278 @@
+/* ================================================================
+   THE HOLLOW CROWN — Combat presentation
+   Stage sizing + character state motion. No gameplay rules here.
+   ================================================================ */
+
+.combat-stage {
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.combat-stage__backdrop,
+.combat-stage__ground,
+.combat-stage__dust {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.combat-stage__backdrop {
+    background:
+        radial-gradient(circle at 50% 58%, rgba(214, 88, 23, 0.09), transparent 34%),
+        linear-gradient(180deg, rgba(2, 1, 1, 0.08), rgba(4, 2, 1, 0.18));
+}
+
+.combat-stage__ground {
+    top: auto;
+    height: 34%;
+    background: linear-gradient(180deg, transparent, rgba(2, 1, 0, 0.42));
+}
+
+.combat-stage__actor {
+    pointer-events: none;
+    width: min(26vw, 380px);
+    height: min(68vh, 620px);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    transform-origin: 50% 100%;
+}
+
+.combat-stage__actor--player {
+    left: 12%;
+    bottom: 3%;
+    width: min(22vw, 340px);
+}
+
+.combat-stage__actor--enemy {
+    right: 11%;
+    bottom: 3%;
+    width: min(26vw, 390px);
+}
+
+.combat-actor {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    transform-origin: 50% 100%;
+}
+
+.combat-actor__image {
+    position: relative;
+    z-index: 4;
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    object-position: center bottom;
+    transform-origin: 50% 100%;
+    user-select: none;
+    will-change: transform, filter, opacity;
+    filter: drop-shadow(0 20px 18px rgba(0, 0, 0, 0.56));
+}
+
+.combat-actor__ground-shadow {
+    position: absolute;
+    left: 50%;
+    bottom: 1%;
+    z-index: 1;
+    width: 64%;
+    height: 7%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0) 72%);
+    filter: blur(5px);
+}
+
+.combat-actor--idle .combat-actor__image {
+    animation: hc-combat-idle 3.8s ease-in-out infinite;
+}
+
+.combat-actor--player-attack .combat-actor__image {
+    animation: hc-player-attack 520ms cubic-bezier(.2,.75,.25,1) both;
+}
+
+.combat-actor--enemy-attack .combat-actor__image {
+    animation: hc-enemy-attack 520ms cubic-bezier(.2,.75,.25,1) both;
+}
+
+.combat-actor--player-signature .combat-actor__image {
+    animation: hc-player-signature 680ms cubic-bezier(.12,.82,.2,1) both;
+}
+
+.combat-actor--enemy-signature .combat-actor__image {
+    animation: hc-enemy-signature 680ms cubic-bezier(.12,.82,.2,1) both;
+}
+
+.combat-actor--player-hit .combat-actor__image,
+.combat-actor--enemy-hit .combat-actor__image {
+    animation: hc-combat-hit 450ms cubic-bezier(.18,.7,.28,1) both;
+}
+
+.combat-actor--death .combat-actor__image {
+    animation: hc-combat-death 720ms ease-out both;
+    filter: grayscale(.12) brightness(.72) drop-shadow(0 18px 18px rgba(0,0,0,.58));
+}
+
+.combat-actor__hit-flash {
+    position: absolute;
+    inset: 7% 13% 11%;
+    z-index: 6;
+    border-radius: 45%;
+    background: rgba(255, 228, 194, 0.72);
+    mix-blend-mode: screen;
+    animation: hc-hit-flash 220ms ease-out both;
+    pointer-events: none;
+}
+
+.combat-actor__motion-trails,
+.combat-actor__signature-energy,
+.combat-actor__signature-aura,
+.combat-actor__death-ash {
+    position: absolute;
+    pointer-events: none;
+}
+
+.combat-actor__motion-trails {
+    inset: 15% 12% 13%;
+    z-index: 2;
+    opacity: .65;
+}
+
+.combat-actor__motion-trails span {
+    position: absolute;
+    left: 15%;
+    top: 42%;
+    width: 62%;
+    height: 2px;
+    transform-origin: left center;
+    background: linear-gradient(90deg, rgba(234, 109, 31, 0), rgba(234, 109, 31, .7), rgba(255, 210, 139, 0));
+    filter: blur(1px);
+    animation: hc-motion-trail 340ms ease-out both;
+}
+
+.combat-actor__motion-trails span:nth-child(2) { top: 49%; animation-delay: 25ms; }
+.combat-actor__motion-trails span:nth-child(3) { top: 56%; animation-delay: 50ms; }
+
+.combat-actor__signature-aura {
+    inset: 9% 8% 8%;
+    z-index: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(231, 136, 42, .22), rgba(160, 46, 12, .1) 42%, transparent 74%);
+    filter: blur(10px);
+    animation: hc-signature-aura 680ms ease-out both;
+}
+
+.combat-actor__signature-energy {
+    inset: 6% 5% 7%;
+    z-index: 3;
+}
+
+.combat-actor__signature-energy span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 76%;
+    height: 1px;
+    transform: translate(-50%, -50%) rotate(0deg);
+    background: linear-gradient(90deg, transparent, rgba(247, 162, 76, .85), transparent);
+    box-shadow: 0 0 14px rgba(225, 99, 24, .5);
+    animation: hc-signature-ray 680ms ease-out both;
+}
+
+.combat-actor__signature-energy span:nth-child(2) { transform: translate(-50%, -50%) rotate(90deg); animation-delay: 45ms; }
+
+.combat-actor__death-ash {
+    inset: auto 18% 5%;
+    height: 70%;
+    z-index: 7;
+}
+
+.combat-actor__death-ash span {
+    position: absolute;
+    bottom: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(144, 126, 110, .62);
+    box-shadow: 0 0 8px rgba(186, 138, 90, .22);
+    animation: hc-ash-rise 720ms ease-out both;
+}
+
+.combat-actor__death-ash span:nth-child(1) { left: 20%; animation-delay: 45ms; }
+.combat-actor__death-ash span:nth-child(2) { left: 42%; animation-delay: 110ms; }
+.combat-actor__death-ash span:nth-child(3) { left: 63%; animation-delay: 75ms; }
+.combat-actor__death-ash span:nth-child(4) { left: 75%; animation-delay: 145ms; }
+
+.combat-actor__image--hit { filter: brightness(1.18) saturate(1.05) drop-shadow(0 20px 18px rgba(0,0,0,.56)); }
+.combat-actor__image--heal { filter: brightness(1.08) saturate(1.08) drop-shadow(0 20px 18px rgba(0,0,0,.56)); }
+.combat-actor__image--block { filter: brightness(1.04) drop-shadow(0 20px 18px rgba(0,0,0,.56)); }
+
+.combat-turn-banner {
+    position: absolute;
+    left: 50%;
+    top: 13%;
+    z-index: 30;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.combat-turn-banner span {
+    display: block;
+    padding: 8px 20px;
+    border-top: 1px solid rgba(200, 143, 77, .3);
+    border-bottom: 1px solid rgba(200, 143, 77, .3);
+    color: rgba(231, 213, 183, .64);
+    font-size: 8px;
+    letter-spacing: .3em;
+    text-transform: uppercase;
+    text-shadow: 0 2px 12px rgba(0,0,0,.7);
+    animation: hc-turn-fade 700ms ease both;
+}
+
+.combat-utility-button {
+    padding: 8px 12px;
+    border: 1px solid rgba(169, 111, 53, .48);
+    background: linear-gradient(180deg, rgba(39, 22, 13, .88), rgba(12, 7, 5, .94));
+    color: rgba(232, 214, 184, .74);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    box-shadow: inset 0 1px 0 rgba(255, 229, 184, .08), 0 8px 20px rgba(0,0,0,.3);
+    transition: transform 140ms ease, border-color 140ms ease, filter 140ms ease;
+}
+
+.combat-utility-button:hover { transform: translateY(-1px); border-color: rgba(218, 154, 79, .8); filter: brightness(1.08); }
+.combat-utility-button:active { transform: translateY(1px); }
+
+@keyframes hc-combat-idle { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-3px) rotate(.2deg); } }
+@keyframes hc-player-attack { 0% { transform: translate3d(0, 0, 0) scale(1); } 18% { transform: translate3d(-10px, 4px, 0) scale(.985); } 58% { transform: translate3d(62px, -1px, 0) scale(1.035); } 74% { transform: translate3d(72px, 0, 0) scale(1.04); } 100% { transform: translate3d(0, 0, 0) scale(1); } }
+@keyframes hc-player-signature { 0% { transform: translate3d(0, 0, 0) scale(1); } 18% { transform: translate3d(-18px, 8px, 0) scale(.96); } 55% { transform: translate3d(90px, -4px, 0) scale(1.05); } 70% { transform: translate3d(96px, -2px, 0) scale(1.065); } 100% { transform: translate3d(0, 0, 0) scale(1); } }
+@keyframes hc-enemy-attack { 0% { transform: translate3d(0,0,0) scale(1); } 22% { transform: translate3d(10px, 3px, 0) scale(.99); } 60% { transform: translate3d(-58px, -2px, 0) scale(1.03); } 74% { transform: translate3d(-66px, 0, 0) scale(1.035); } 100% { transform: translate3d(0,0,0) scale(1); } }
+@keyframes hc-enemy-signature { 0% { transform: translate3d(0,0,0) scale(1); } 18% { transform: translate3d(12px, 6px, 0) scale(.96); } 58% { transform: translate3d(-78px,-3px,0) scale(1.045); } 72% { transform: translate3d(-86px,-2px,0) scale(1.055); } 100% { transform: translate3d(0,0,0) scale(1); } }
+@keyframes hc-combat-hit { 0% { transform: translate3d(0,0,0) rotate(0deg); } 18% { transform: translate3d(12px,-2px,0) rotate(1.1deg); } 34% { transform: translate3d(-15px,2px,0) rotate(-1.6deg); } 50% { transform: translate3d(9px,0,0) rotate(.8deg); } 100% { transform: translate3d(0,0,0) rotate(0deg); } }
+@keyframes hc-combat-death { 0% { transform: translate3d(0,0,0) scale(1); opacity: 1; } 55% { transform: translate3d(0,8px,0) rotate(-2deg) scale(.985); opacity: .94; } 100% { transform: translate3d(0,26px,0) rotate(-5deg) scale(.94); opacity: .2; } }
+@keyframes hc-hit-flash { 0% { opacity: 0; transform: scale(.7); } 30% { opacity: .8; transform: scale(1.06); } 100% { opacity: 0; transform: scale(1.18); } }
+@keyframes hc-motion-trail { 0% { opacity: 0; transform: translateX(-12px) scaleX(.25); } 100% { opacity: .7; transform: translateX(0) scaleX(1); } }
+@keyframes hc-signature-aura { 0% { opacity: 0; transform: scale(.72); } 45% { opacity: .95; transform: scale(1); } 100% { opacity: 0; transform: scale(1.14); } }
+@keyframes hc-signature-ray { 0% { opacity: 0; transform: translate(-50%,-50%) scaleX(.1) rotate(0deg); } 40% { opacity: 1; transform: translate(-50%,-50%) scaleX(1) rotate(0deg); } 100% { opacity: 0; transform: translate(-50%,-50%) scaleX(1.15) rotate(0deg); } }
+@keyframes hc-ash-rise { 0% { opacity: 0; transform: translate3d(0,0,0) scale(.6); } 25% { opacity: .9; } 100% { opacity: 0; transform: translate3d(-12px,-72px,0) scale(.3); } }
+@keyframes hc-turn-fade { 0% { opacity: 0; transform: translateY(-8px); } 25%,75% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(8px); } }
+
+@media (max-width: 1100px) {
+    .combat-stage__actor--player { left: 9%; width: min(24vw, 310px); }
+    .combat-stage__actor--enemy { right: 8%; width: min(28vw, 340px); }
+}
+
+@media (max-width: 780px) {
+    .combat-stage__actor { height: min(58vh, 500px); }
+    .combat-stage__actor--player { left: 3%; width: 37vw; }
+    .combat-stage__actor--enemy { right: 3%; width: 42vw; }
+    .combat-utility-button { top: 12px; right: 12px; }
+}

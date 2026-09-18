@@ -5,7 +5,7 @@ import {
     type DragEvent,
 } from "react";
 
-import battlefieldBackground from "../assets/backgrounds/battlefield.png";
+import battlefieldBackground from "../assets/combat/battlefield.png";
 import { cards } from "../data/cards";
 import { MAX_DECK_SIZE, MIN_DECK_SIZE } from "../consts/game";
 import type {

@@ -1,0 +1,404 @@
+/* ================================================================
+   THE HOLLOW CROWN — Game Control System
+   Visual language: beveled bronze / forged metal / ember light.
+   ================================================================ */
+
+:root {
+    --hc-metal-dark: #1a0e08;
+    --hc-metal-deep: #0c0704;
+    --hc-metal-mid: #5c351b;
+    --hc-metal: #8e5b2b;
+    --hc-metal-light: #c18a48;
+    --hc-metal-hot: #e1ae62;
+    --hc-ember-soft: rgba(205, 83, 25, 0.18);
+    --hc-button-text: #ead7b8;
+    --hc-button-muted: #9e8a6f;
+}
+
+/* ----------------------------------------------------------------
+   Shared game button surface
+   ---------------------------------------------------------------- */
+
+.hc-button,
+.collection-back-button,
+.collection-filter-row button,
+.collection-pagination button,
+.collection-deck-actions button,
+.collection-action-button,
+.collection-inspect-close,
+.collection-validation-actions button {
+    --hc-button-top: #563119;
+    --hc-button-bottom: #160b06;
+    --hc-button-border: rgba(160, 103, 48, 0.72);
+
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 10px 18px;
+    border: 1px solid var(--hc-button-border);
+    border-radius: 0;
+    clip-path: polygon(
+        0 8px,
+        8px 0,
+        calc(100% - 8px) 0,
+        100% 8px,
+        100% calc(100% - 8px),
+        calc(100% - 8px) 100%,
+        8px 100%,
+        0 calc(100% - 8px)
+    );
+    color: var(--hc-button-text);
+    background:
+        radial-gradient(circle at 50% -30%, rgba(255, 221, 166, 0.13), transparent 48%),
+        linear-gradient(180deg, var(--hc-button-top) 0%, #2f190d 42%, var(--hc-button-bottom) 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 232, 190, 0.18),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.72),
+        inset 2px 0 0 rgba(255, 202, 125, 0.035),
+        0 5px 0 rgba(20, 9, 4, 0.95),
+        0 10px 22px rgba(0, 0, 0, 0.42);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.88);
+    font-family: var(--hc-font-display, Georgia, "Times New Roman", serif);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    line-height: 1;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+        transform 140ms ease,
+        filter 140ms ease,
+        color 140ms ease,
+        border-color 140ms ease,
+        box-shadow 140ms ease,
+        background 140ms ease;
+}
+
+.hc-button::before,
+.collection-back-button::before,
+.collection-filter-row button::before,
+.collection-pagination button::before,
+.collection-deck-actions button::before,
+.collection-action-button::before,
+.collection-inspect-close::before,
+.collection-validation-actions button::before {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    z-index: -1;
+    pointer-events: none;
+    border: 1px solid rgba(239, 193, 119, 0.16);
+    clip-path: polygon(
+        0 5px,
+        5px 0,
+        calc(100% - 5px) 0,
+        100% 5px,
+        100% calc(100% - 5px),
+        calc(100% - 5px) 100%,
+        5px 100%,
+        0 calc(100% - 5px)
+    );
+    box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.28);
+}
+
+.hc-button::after,
+.collection-back-button::after,
+.collection-filter-row button::after,
+.collection-pagination button::after,
+.collection-deck-actions button::after,
+.collection-action-button::after,
+.collection-inspect-close::after,
+.collection-validation-actions button::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 8px 8px, rgba(240, 190, 112, 0.72) 0 1px, transparent 2px),
+        radial-gradient(circle at calc(100% - 8px) 8px, rgba(240, 190, 112, 0.58) 0 1px, transparent 2px),
+        radial-gradient(circle at 8px calc(100% - 8px), rgba(240, 190, 112, 0.42) 0 1px, transparent 2px),
+        radial-gradient(circle at calc(100% - 8px) calc(100% - 8px), rgba(240, 190, 112, 0.42) 0 1px, transparent 2px),
+        linear-gradient(90deg, transparent 8%, rgba(248, 213, 160, 0.34) 50%, transparent 92%) top / 100% 1px no-repeat;
+    opacity: 0.78;
+}
+
+.hc-button:hover:not(:disabled),
+.collection-back-button:hover:not(:disabled),
+.collection-filter-row button:hover:not(:disabled),
+.collection-pagination button:hover:not(:disabled),
+.collection-deck-actions button:hover:not(:disabled),
+.collection-action-button:hover:not(:disabled),
+.collection-inspect-close:hover:not(:disabled),
+.collection-validation-actions button:hover:not(:disabled) {
+    color: #f5e4c4;
+    border-color: rgba(226, 164, 83, 0.96);
+    filter: brightness(1.12);
+    transform: translateY(-1px);
+    background:
+        radial-gradient(circle at 50% -30%, rgba(255, 226, 176, 0.19), transparent 50%),
+        linear-gradient(180deg, #6c3f20 0%, #40200f 42%, #1b0c06 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 241, 212, 0.24),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.78),
+        0 6px 0 rgba(20, 9, 4, 0.95),
+        0 14px 28px rgba(0, 0, 0, 0.5),
+        0 0 18px var(--hc-ember-soft);
+}
+
+.hc-button:active:not(:disabled),
+.collection-back-button:active:not(:disabled),
+.collection-filter-row button:active:not(:disabled),
+.collection-pagination button:active:not(:disabled),
+.collection-deck-actions button:active:not(:disabled),
+.collection-action-button:active:not(:disabled),
+.collection-inspect-close:active:not(:disabled),
+.collection-validation-actions button:active:not(:disabled) {
+    transform: translateY(3px);
+    filter: brightness(0.97);
+    box-shadow:
+        inset 0 2px 0 rgba(0, 0, 0, 0.58),
+        inset 0 -1px 0 rgba(255, 215, 158, 0.07),
+        0 2px 0 rgba(20, 9, 4, 0.98),
+        0 5px 10px rgba(0, 0, 0, 0.42);
+}
+
+.hc-button:focus-visible,
+.collection-back-button:focus-visible,
+.collection-filter-row button:focus-visible,
+.collection-pagination button:focus-visible,
+.collection-deck-actions button:focus-visible,
+.collection-action-button:focus-visible,
+.collection-inspect-close:focus-visible,
+.collection-validation-actions button:focus-visible {
+    outline: 1px solid var(--hc-metal-hot);
+    outline-offset: 4px;
+}
+
+.hc-button:disabled,
+.collection-back-button:disabled,
+.collection-filter-row button:disabled,
+.collection-pagination button:disabled,
+.collection-deck-actions button:disabled,
+.collection-action-button:disabled,
+.collection-inspect-close:disabled,
+.collection-validation-actions button:disabled {
+    color: rgba(139, 119, 93, 0.42);
+    border-color: rgba(90, 63, 39, 0.32);
+    background: linear-gradient(180deg, rgba(34, 21, 14, 0.78), rgba(10, 7, 5, 0.88));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.025),
+        0 2px 5px rgba(0, 0, 0, 0.25);
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ----------------------------------------------------------------
+   Primary / secondary / danger variants
+   ---------------------------------------------------------------- */
+
+.hc-button--primary,
+.collection-action-button--primary,
+.collection-deck-actions .collection-deck-save,
+.collection-filter-row button.is-active,
+.collection-pagination button.is-active {
+    --hc-button-top: #7a421d;
+    --hc-button-bottom: #2a1007;
+    --hc-button-border: rgba(231, 160, 78, 0.92);
+
+    color: #f3dfbb;
+    background:
+        radial-gradient(circle at 50% -35%, rgba(255, 227, 179, 0.2), transparent 48%),
+        linear-gradient(180deg, #78431f 0%, #542614 45%, #240c05 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 239, 204, 0.26),
+        inset 0 -2px 0 rgba(46, 12, 4, 0.76),
+        0 5px 0 rgba(26, 8, 3, 0.96),
+        0 12px 25px rgba(0, 0, 0, 0.48),
+        0 0 19px rgba(207, 73, 18, 0.14);
+}
+
+.hc-button--primary:hover:not(:disabled),
+.collection-action-button--primary:hover:not(:disabled),
+.collection-deck-actions .collection-deck-save:hover:not(:disabled),
+.collection-filter-row button.is-active:hover:not(:disabled),
+.collection-pagination button.is-active:hover:not(:disabled) {
+    background:
+        radial-gradient(circle at 50% -35%, rgba(255, 235, 197, 0.28), transparent 50%),
+        linear-gradient(180deg, #97552a 0%, #6b2f15 45%, #2c0d05 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 245, 217, 0.34),
+        inset 0 -2px 0 rgba(46, 12, 4, 0.8),
+        0 6px 0 rgba(26, 8, 3, 0.98),
+        0 15px 30px rgba(0, 0, 0, 0.5),
+        0 0 25px rgba(224, 92, 22, 0.2);
+}
+
+.hc-button--secondary,
+.collection-deck-actions button:not(.collection-deck-save) {
+    --hc-button-top: #3a2819;
+    --hc-button-bottom: #100a06;
+    --hc-button-border: rgba(145, 111, 72, 0.55);
+    color: #c4b39b;
+}
+
+.hc-button--danger {
+    --hc-button-top: #54211a;
+    --hc-button-bottom: #190807;
+    --hc-button-border: rgba(166, 73, 59, 0.72);
+    color: #e2ad9e;
+}
+
+.collection-action-button--craft {
+    --hc-button-top: #4e3920;
+    --hc-button-bottom: #180f07;
+    --hc-button-border: rgba(205, 156, 83, 0.75);
+    color: #e7c98c;
+}
+
+/* ----------------------------------------------------------------
+   Filter / pagination controls
+   ---------------------------------------------------------------- */
+
+.collection-filter-row button {
+    min-height: 34px;
+    padding: 8px 13px;
+    font-family: var(--hc-font-ui, Inter, system-ui, sans-serif);
+    font-size: 8px;
+    letter-spacing: 0.17em;
+}
+
+.collection-pagination button {
+    min-width: 34px;
+    height: 34px;
+    min-height: 34px;
+    padding: 7px 10px;
+    font-family: var(--hc-font-ui, Inter, system-ui, sans-serif);
+    font-size: 9px;
+}
+
+.collection-pagination button[disabled] {
+    opacity: 0.3;
+}
+
+.collection-back-button {
+    min-height: 40px;
+    padding-inline: 19px;
+    font-family: var(--hc-font-ui, Inter, system-ui, sans-serif);
+    font-size: 8px;
+    letter-spacing: 0.22em;
+}
+
+.collection-inspect-close {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    min-height: 38px;
+    padding: 0;
+    font-family: var(--hc-font-ui, Inter, system-ui, sans-serif);
+    font-size: 13px;
+}
+
+.collection-action-button {
+    min-height: 44px;
+    padding: 11px 18px;
+    font-family: var(--hc-font-ui, Inter, system-ui, sans-serif);
+    font-size: 8px;
+    letter-spacing: 0.19em;
+}
+
+.collection-validation-actions button {
+    min-height: 44px;
+    font-family: var(--hc-font-ui, Inter, system-ui, sans-serif);
+}
+
+/* ----------------------------------------------------------------
+   Hub stations: make clickable tiles feel forged into the world.
+   ---------------------------------------------------------------- */
+
+.hc-hub-station-button {
+    position: relative;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.hc-hub-station-button:focus-visible {
+    outline: 1px solid var(--hc-metal-hot);
+    outline-offset: 5px;
+}
+
+.hc-hub-station {
+    border-color: rgba(161, 107, 55, 0.66) !important;
+    background:
+        linear-gradient(180deg, rgba(47, 25, 13, 0.95), rgba(11, 7, 5, 0.97)) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 227, 176, 0.12),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.75),
+        inset 2px 0 0 rgba(240, 173, 93, 0.03),
+        0 6px 0 rgba(15, 7, 3, 0.95),
+        0 16px 30px rgba(0, 0, 0, 0.42) !important;
+    clip-path: polygon(
+        0 10px,
+        10px 0,
+        calc(100% - 10px) 0,
+        100% 10px,
+        100% calc(100% - 10px),
+        calc(100% - 10px) 100%,
+        10px 100%,
+        0 calc(100% - 10px)
+    );
+}
+
+.hc-hub-station-button:hover .hc-hub-station {
+    transform: translateY(-2px) !important;
+    border-color: rgba(226, 162, 82, 0.94) !important;
+    filter: brightness(1.11);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 235, 197, 0.18),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.78),
+        0 7px 0 rgba(15, 7, 3, 0.98),
+        0 19px 35px rgba(0, 0, 0, 0.5),
+        0 0 22px rgba(205, 85, 23, 0.13) !important;
+}
+
+.hc-hub-station__icon {
+    border-color: rgba(202, 147, 76, 0.72) !important;
+    background:
+        radial-gradient(circle at 34% 27%, rgba(255, 226, 170, 0.17), transparent 30%),
+        linear-gradient(145deg, rgba(88, 46, 21, 0.76), rgba(12, 7, 4, 0.96)) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 229, 186, 0.14),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.7),
+        0 5px 12px rgba(0, 0, 0, 0.38) !important;
+}
+
+/* Decorative side rails on hub tiles. */
+.hc-hub-station::before,
+.hc-hub-station::after {
+    opacity: 0.9;
+}
+
+/* ----------------------------------------------------------------
+   Reduced motion
+   ---------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    .hc-button,
+    .collection-back-button,
+    .collection-filter-row button,
+    .collection-pagination button,
+    .collection-deck-actions button,
+    .collection-action-button,
+    .collection-inspect-close,
+    .collection-validation-actions button,
+    .hc-hub-station {
+        transition: none;
+    }
+}
