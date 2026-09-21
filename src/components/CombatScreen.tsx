@@ -28,6 +28,8 @@ import CombatTable from "./CombatTable";
 import CombatHealthBar from "./CombatHealthBar";
 import PlayedCardOverlay from "./PlayedCardOverlay";
 import InventoryScreen from "./InventoryScreen";
+import CombatHeader from "./CombatHeader";
+import CombatSettingsOverlay from "./CombatSettingsOverlay";
 import CombatFeedback, {
     type CombatFeedbackItem,
 } from "./CombatFeedbackOverlay";
@@ -103,12 +105,12 @@ function CombatStatBadge({
     tone: string;
 }) {
     return (
-        <div className="group relative">
+        <div className="combat-stat-badge group relative">
             <div className={`flex items-center gap-1.5 text-sm font-bold ${tone}`}>
                 <span>{icon}</span>
                 <span>{value}</span>
             </div>
-            <div className="pointer-events-none absolute right-0 top-full z-[70] mt-2 w-52 translate-y-1 border border-stone-700 bg-[#100b09]/98 px-3 py-2.5 text-left opacity-0 shadow-[0_10px_30px_rgba(0,0,0,0.65)] transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
+            <div className="combat-stat-badge__tooltip pointer-events-none absolute right-0 top-full z-[90] mt-2 w-60 translate-y-1 border border-stone-700 bg-[#100b09]/98 px-3 py-2.5 text-left opacity-0 shadow-[0_10px_30px_rgba(0,0,0,0.65)] transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
                 <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-200">{title}</p>
                 <p className="mt-1.5 text-[10px] leading-[1.35] text-stone-400">{description}</p>
             </div>
@@ -189,6 +191,11 @@ export default function CombatScreen({
     const [
         showInventory,
         setShowInventory,
+    ] = useState(false);
+
+    const [
+        showSettings,
+        setShowSettings,
     ] = useState(false);
 
     const isPlayerTurn =
@@ -703,16 +710,14 @@ export default function CombatScreen({
     }
 
     return (
-        <main className="h-screen overflow-hidden bg-[#070504] text-stone-200">
-            <div className="relative h-screen w-full overflow-hidden bg-[#070504]">
-                <button
-                    type="button"
-                    className="combat-utility-button absolute right-6 top-5 z-40"
-                    onClick={() => setShowInventory(true)}
-                >
-                    Inventory
-                </button>
+        <main className="relative flex h-screen flex-col overflow-hidden bg-[#070504] text-stone-200">
+            <CombatHeader
+                gold={gold}
+                onOpenInventory={() => setShowInventory(true)}
+                onOpenSettings={() => setShowSettings(true)}
+            />
 
+            <div className="relative min-h-0 flex-1 overflow-hidden bg-[#070504]">
                 {/* BACKGROUND */}
                 <div className="absolute inset-0">
                     <img
@@ -732,7 +737,7 @@ export default function CombatScreen({
                 <div className="relative z-20 flex items-start justify-between px-7 pt-4">
                     {/* PLAYER */}
                     <div className="w-[320px]">
-                        <div className="relative overflow-hidden border border-amber-900/55 bg-[linear-gradient(180deg,rgba(24,13,9,0.96),rgba(10,7,5,0.92))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,229,184,0.06),0_10px_30px_rgba(0,0,0,0.44)]">
+                        <div className="combat-hud-panel relative overflow-visible border border-amber-900/55 bg-[linear-gradient(180deg,rgba(24,13,9,0.96),rgba(10,7,5,0.92))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,229,184,0.06),0_10px_30px_rgba(0,0,0,0.44)]">
                             <div className="pointer-events-none absolute inset-[3px] border border-white/[0.035]" />
                             <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/20 to-transparent" />
                             <div className="flex items-center justify-between">
@@ -785,7 +790,7 @@ export default function CombatScreen({
 
                     {/* ENEMY */}
                     <div className="w-[320px]">
-                        <div className="relative overflow-hidden border border-amber-900/55 bg-[linear-gradient(180deg,rgba(24,13,9,0.96),rgba(10,7,5,0.92))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,229,184,0.06),0_10px_30px_rgba(0,0,0,0.44)]">
+                        <div className="combat-hud-panel relative overflow-visible border border-amber-900/55 bg-[linear-gradient(180deg,rgba(24,13,9,0.96),rgba(10,7,5,0.92))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,229,184,0.06),0_10px_30px_rgba(0,0,0,0.44)]">
                             <div className="pointer-events-none absolute inset-[3px] border border-white/[0.035]" />
                             <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/20 to-transparent" />
                             <div className="flex items-center justify-between">
@@ -1037,22 +1042,27 @@ export default function CombatScreen({
                     }
                 />
 
-                {showInventory && (
-                    <InventoryScreen
-                        deck={deck}
-                        relics={relics}
-                        upgrades={upgrades}
-                        maxDeckSize={
-                            maxDeckSize
-                        }
-                        onClose={() =>
-                            setShowInventory(
-                                false,
-                            )
-                        }
-                    />
-                )}
             </div>
+
+            {showInventory && (
+                <InventoryScreen
+                    deck={deck}
+                    relics={relics}
+                    upgrades={upgrades}
+                    maxDeckSize={
+                        maxDeckSize
+                    }
+                    onClose={() =>
+                        setShowInventory(false)
+                    }
+                />
+            )}
+
+            {showSettings && (
+                <CombatSettingsOverlay
+                    onClose={() => setShowSettings(false)}
+                />
+            )}
         </main>
     );
 }

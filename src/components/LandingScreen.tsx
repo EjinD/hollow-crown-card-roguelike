@@ -59,19 +59,9 @@ export default function LandingScreen({
                         </button>
                     </div>
 
-                    <div className="hc-landing-tags" aria-hidden="true">
-                        <span>Deckbuilding</span>
-                        <b>·</b>
-                        <span>Dark Fantasy</span>
-                        <b>·</b>
-                        <span>Roguelike</span>
-                    </div>
                 </div>
             </section>
 
-            <div className="hc-landing-quote">
-                <span>From ash, we build again.</span>
-            </div>
         </main>
     );
 }

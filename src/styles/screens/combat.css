@@ -235,21 +235,12 @@
     animation: hc-turn-fade 700ms ease both;
 }
 
-.combat-utility-button {
-    padding: 8px 12px;
-    border: 1px solid rgba(169, 111, 53, .48);
-    background: linear-gradient(180deg, rgba(39, 22, 13, .88), rgba(12, 7, 5, .94));
-    color: rgba(232, 214, 184, .74);
-    font-size: 8px;
-    font-weight: 700;
-    letter-spacing: .16em;
-    text-transform: uppercase;
-    box-shadow: inset 0 1px 0 rgba(255, 229, 184, .08), 0 8px 20px rgba(0,0,0,.3);
-    transition: transform 140ms ease, border-color 140ms ease, filter 140ms ease;
-}
 
-.combat-utility-button:hover { transform: translateY(-1px); border-color: rgba(218, 154, 79, .8); filter: brightness(1.08); }
-.combat-utility-button:active { transform: translateY(1px); }
+.combat-table__end-turn {
+    position: absolute;
+    top: 24px;
+    right: 7%;
+}
 
 @keyframes hc-combat-idle { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-3px) rotate(.2deg); } }
 @keyframes hc-player-attack { 0% { transform: translate3d(0, 0, 0) scale(1); } 18% { transform: translate3d(-10px, 4px, 0) scale(.985); } 58% { transform: translate3d(62px, -1px, 0) scale(1.035); } 74% { transform: translate3d(72px, 0, 0) scale(1.04); } 100% { transform: translate3d(0, 0, 0) scale(1); } }
@@ -274,5 +265,31 @@
     .combat-stage__actor { height: min(58vh, 500px); }
     .combat-stage__actor--player { left: 3%; width: 37vw; }
     .combat-stage__actor--enemy { right: 3%; width: 42vw; }
-    .combat-utility-button { top: 12px; right: 12px; }
+}
+
+/* Combat HUD tooltips are intentionally allowed to leave the health panel. */
+.combat-hud-panel {
+    overflow: visible !important;
+}
+
+.combat-stat-badge {
+    z-index: 2;
+}
+
+.combat-stat-badge__tooltip {
+    max-width: min(280px, calc(100vw - 32px));
+}
+
+@media (max-width: 780px) {
+    .combat-stat-badge__tooltip {
+        width: min(230px, calc(100vw - 24px));
+    }
+}
+
+html[data-hc-reduced-motion="true"] .combat-stage *,
+html[data-hc-reduced-motion="true"] .combat-table__end-turn,
+html[data-hc-reduced-motion="true"] .combat-stat-badge__tooltip {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
 }

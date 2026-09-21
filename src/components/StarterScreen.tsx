@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 import loadingBackground from "../assets/backgrounds/loading/loading-background.png";
-import crownSigil from "../assets/ui/logo/crown-sigil.png";
 import gameLogo from "../assets/ui/logo/the-hollow-crown-logo.png";
 import { preloadGameAssets } from "../data/assets";
 
@@ -63,15 +62,6 @@ export default function StarterScreen({
             <div className="hc-stage__embers" aria-hidden="true" />
 
             <section className="hc-loading-stage" aria-label="Game loading">
-                <img
-                    src={crownSigil}
-                    alt=""
-                    draggable={false}
-                    className="hc-loading-stage__sigil"
-                />
-
-                <p className="hc-eyebrow">Ashen Bastion · Preparing the Descent</p>
-
                 <img
                     src={gameLogo}
                     alt="The Hollow Crown"

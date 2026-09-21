@@ -188,6 +188,25 @@
     filter: drop-shadow(0 4px 9px rgba(0, 0, 0, 0.72));
 }
 
+
+.hc-hub-v2-station__external-icon {
+    position: relative;
+    z-index: 2;
+    display: block;
+    width: 58px;
+    height: 58px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 9px rgba(0, 0, 0, 0.72));
+}
+
+.hc-hub-v2-station-button:not([aria-disabled="true"]):hover .hc-hub-v2-station__external-icon {
+    filter:
+        brightness(1.18)
+        drop-shadow(0 4px 9px rgba(0, 0, 0, 0.72))
+        drop-shadow(0 0 9px rgba(213, 163, 95, 0.2));
+    transform: translateY(-1px) scale(1.03);
+}
+
 .hc-hub-v2-station__title {
     position: relative;
     font-family: var(--hc-font-display);
@@ -395,7 +414,8 @@
         height: 74px;
     }
 
-    .hc-hub-v2-station__title {
+    
+.hc-hub-v2-station__title {
         font-size: 16px;
     }
 
@@ -446,7 +466,8 @@
         height: 36px;
     }
 
-    .hc-hub-v2-station__title {
+    
+.hc-hub-v2-station__title {
         font-size: 12px;
     }
 

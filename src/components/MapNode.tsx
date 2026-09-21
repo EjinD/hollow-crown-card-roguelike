@@ -1,89 +1,62 @@
 import type { MapNode as MapNodeType } from "../types/game";
 
-interface MapNodeProps {
-    node: MapNodeType;
-    isCurrent: boolean;
-    isAvailable: boolean;
-    onClick: (nodeId: string) => void;
-}
+import battleIcon from "../assets/icons/map/battle.svg";
+import bossIcon from "../assets/icons/map/boss.svg";
+import completedIcon from "../assets/icons/map/completed.svg";
+import currentIcon from "../assets/icons/map/current.svg";
+import eliteIcon from "../assets/icons/map/elite.svg";
+import eventIcon from "../assets/icons/map/event.svg";
+import lockedIcon from "../assets/icons/map/locked.svg";
+import restIcon from "../assets/icons/map/rest.svg";
+import shopIcon from "../assets/icons/map/shop.svg";
 
-function getNodeIcon(type: MapNodeType["type"]): string {
-    switch (type) {
-        case "battle":
-            return "⚔";
-        case "elite":
-            return "☠";
-        case "event":
-            return "?";
-        case "shop":
-            return "♜";
-        case "rest":
-            return "🔥";
-        case "boss":
-            return "♛";
-    }
-}
-
-function getNodeLabel(type: MapNodeType["type"]): string {
-    switch (type) {
-        case "battle":
-            return "Battle";
-        case "elite":
-            return "Elite";
-        case "event":
-            return "Event";
-        case "shop":
-            return "Shop";
-        case "rest":
-            return "Rest";
-        case "boss":
-            return "Boss";
-    }
-}
-
-function getNodePalette(type: MapNodeType["type"]): {
-    edge: string;
+type NodeVisual = {
+    label: string;
+    className: string;
     icon: string;
-    glow: string;
-} {
+};
+
+const nodeIcons: Record<MapNodeType["type"], string> = {
+    battle: battleIcon,
+    elite: eliteIcon,
+    event: eventIcon,
+    shop: shopIcon,
+    rest: restIcon,
+    boss: bossIcon,
+};
+
+function getNodeVisual(type: MapNodeType["type"]): NodeVisual {
     switch (type) {
         case "battle":
-            return {
-                edge: "border-stone-500/60",
-                icon: "text-stone-200",
-                glow: "rgba(148,163,184,0.22)",
-            };
+            return { label: "Battle", className: "is-battle", icon: nodeIcons.battle };
         case "elite":
-            return {
-                edge: "border-red-500/70",
-                icon: "text-red-300",
-                glow: "rgba(239,68,68,0.28)",
-            };
+            return { label: "Elite", className: "is-elite", icon: nodeIcons.elite };
         case "event":
-            return {
-                edge: "border-violet-500/60",
-                icon: "text-violet-200",
-                glow: "rgba(139,92,246,0.24)",
-            };
+            return { label: "Event", className: "is-event", icon: nodeIcons.event };
         case "shop":
-            return {
-                edge: "border-amber-400/60",
-                icon: "text-amber-200",
-                glow: "rgba(245,158,11,0.24)",
-            };
+            return { label: "Shop", className: "is-shop", icon: nodeIcons.shop };
         case "rest":
-            return {
-                edge: "border-orange-400/60",
-                icon: "text-orange-200",
-                glow: "rgba(249,115,22,0.26)",
-            };
+            return { label: "Rest", className: "is-rest", icon: nodeIcons.rest };
         case "boss":
-            return {
-                edge: "border-red-400/80",
-                icon: "text-red-200",
-                glow: "rgba(248,113,113,0.42)",
-            };
+            return { label: "Boss", className: "is-boss", icon: nodeIcons.boss };
     }
+}
+
+function getStateIcon({
+    isCurrent,
+    isCompleted,
+    isAvailable,
+    typeIcon,
+}: {
+    isCurrent: boolean;
+    isCompleted: boolean;
+    isAvailable: boolean;
+    typeIcon: string;
+}): string {
+    if (isCurrent) return currentIcon;
+    if (isCompleted) return completedIcon;
+    if (!isAvailable) return lockedIcon;
+    return typeIcon;
 }
 
 export default function MapNode({
@@ -91,11 +64,29 @@ export default function MapNode({
     isCurrent,
     isAvailable,
     onClick,
-}: MapNodeProps) {
+}: {
+    node: MapNodeType;
+    isCurrent: boolean;
+    isAvailable: boolean;
+    onClick: (nodeId: string) => void;
+}) {
     const isCompleted = node.completed;
     const isInteractive = isCurrent || isAvailable;
-    const palette = getNodePalette(node.type);
-    const label = getNodeLabel(node.type);
+    const visual = getNodeVisual(node.type);
+    const stateClass = isCurrent
+        ? "is-current"
+        : isCompleted
+            ? "is-completed"
+            : isAvailable
+                ? "is-available"
+                : "is-locked";
+
+    const icon = getStateIcon({
+        isCurrent,
+        isCompleted,
+        isAvailable,
+        typeIcon: visual.icon,
+    });
 
     return (
         <button
@@ -103,78 +94,19 @@ export default function MapNode({
             disabled={!isInteractive}
             onClick={() => onClick(node.id)}
             data-map-node-id={node.id}
-            aria-label={label}
+            aria-label={visual.label}
             aria-current={isCurrent ? "step" : undefined}
-            className={[
-                "group relative flex h-[92px] w-[112px] items-center justify-center",
-                "select-none transition-all duration-300 ease-out",
-                isInteractive ? "cursor-pointer" : "cursor-default",
-                isCurrent ? "scale-[1.08]" : "",
-                isAvailable && !isCurrent ? "hover:-translate-y-1 hover:scale-[1.04]" : "",
-            ].join(" ")}
+            className={`hc-map-node ${visual.className} ${stateClass}`}
         >
-            {isCurrent && (
-                <span
-                    className="absolute -inset-3 rounded-[32px] blur-[18px]"
-                    style={{ background: palette.glow }}
-                />
-            )}
+            <span className="hc-map-node__outer" aria-hidden="true" />
+            <span className="hc-map-node__inner" aria-hidden="true" />
+            <span className="hc-map-node__rune" aria-hidden="true" />
 
-            {isAvailable && !isCurrent && (
-                <span
-                    className="absolute -inset-2 rounded-[28px] opacity-0 blur-[14px] transition-opacity duration-300 group-hover:opacity-100"
-                    style={{ background: palette.glow }}
-                />
-            )}
-
-            <span
-                className={[
-                    "absolute inset-0 border-2",
-                    "[clip-path:polygon(15%_0%,85%_0%,100%_50%,85%_100%,15%_100%,0%_50%)]",
-                    palette.edge,
-                    isCurrent
-                        ? "bg-[#32170f] shadow-[0_0_30px_rgba(234,88,12,0.55)]"
-                        : isCompleted
-                          ? "bg-[#12100f] opacity-55"
-                          : isAvailable
-                            ? "bg-[#1c1714] shadow-[0_0_20px_rgba(180,60,30,0.18)]"
-                            : "bg-[#0e0d0c] opacity-35",
-                ].join(" ")}
-            />
-
-            <span
-                className="absolute inset-[5px] border border-white/5 bg-[linear-gradient(145deg,rgba(255,255,255,0.045),transparent_32%,rgba(0,0,0,0.35))] [clip-path:polygon(15%_0%,85%_0%,100%_50%,85%_100%,15%_100%,0%_50%)]"
-            />
-
-            <span
-                className={[
-                    "relative z-10 text-[30px] leading-none",
-                    palette.icon,
-                    isCompleted ? "text-stone-600" : "",
-                    isAvailable && !isCurrent
-                        ? "transition-transform duration-300 group-hover:scale-110"
-                        : "",
-                    node.type === "boss" ? "text-[38px]" : "",
-                ].join(" ")}
-            >
-                {isCompleted ? "✓" : getNodeIcon(node.type)}
+            <span className="hc-map-node__icon" aria-hidden="true">
+                <img className="hc-map-node__icon-image" src={icon} alt="" draggable={false} />
             </span>
 
-            <span
-                className={[
-                    "absolute bottom-[-16px] z-20 rounded-full border px-2.5 py-1",
-                    "bg-[#0b0908]/95 text-[7px] uppercase tracking-[0.24em]",
-                    isCurrent
-                        ? "border-orange-700/70 text-orange-300"
-                        : isCompleted
-                          ? "border-stone-800 text-stone-600"
-                          : isAvailable
-                            ? "border-stone-700 text-stone-300"
-                            : "border-stone-900 text-stone-700",
-                ].join(" ")}
-            >
-                {isCurrent ? "Current" : isCompleted ? "Cleared" : label}
-            </span>
+            <span className="hc-map-node__label">{visual.label}</span>
         </button>
     );
 }

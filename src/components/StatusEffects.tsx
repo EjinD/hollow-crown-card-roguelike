@@ -32,11 +32,11 @@ function tone(type: StatusEffect["type"]): { border: string; text: string; glow:
 export default function StatusEffects({ effects, side = "enemy" }: StatusEffectsProps) {
     if (effects.length === 0) return null;
     return (
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="hc-status-effects mt-2 flex flex-wrap items-center gap-2">
             {effects.map((effect, index) => {
                 const t = tone(effect.type);
                 return (
-                    <div key={`${effect.type}-${index}`} className="group relative">
+                    <div key={`${effect.type}-${index}`} className="hc-status-effects__item group relative">
                         <div className={[
                             "flex min-h-10 min-w-10 items-center gap-1.5 border bg-[linear-gradient(180deg,#1b100c,#0b0807)] px-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
                             t.border, t.glow,
@@ -48,7 +48,10 @@ export default function StatusEffects({ effects, side = "enemy" }: StatusEffects
                             </div>
                         </div>
 
-                        <div className="pointer-events-none absolute bottom-full left-1/2 z-[80] mb-2 w-60 -translate-x-1/2 translate-y-1 border border-amber-900/60 bg-[#0d0907]/98 p-3 text-left opacity-0 shadow-[0_12px_30px_rgba(0,0,0,0.65)] transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
+                        <div className={[
+                            "hc-status-effects__tooltip pointer-events-none absolute bottom-full z-[100] mb-2 w-60 max-w-[calc(100vw-32px)] translate-y-1 border border-amber-900/60 bg-[#0d0907]/98 p-3 text-left opacity-0 shadow-[0_12px_30px_rgba(0,0,0,0.65)] transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100",
+                            side === "player" ? "left-0" : "right-0",
+                        ].join(" ")}>
                             <div className="flex items-center justify-between gap-3">
                                 <span className="font-serif text-sm font-bold uppercase text-stone-100">{getEffectLabel(effect)}</span>
                                 <span className={`text-xs font-bold ${t.text}`}>{getEffectValue(effect)}</span>

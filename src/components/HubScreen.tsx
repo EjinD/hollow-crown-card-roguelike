@@ -1,5 +1,10 @@
 import bastionBackground from "../assets/backgrounds/hub/bastion-background.png";
 import type { MetaProgressState } from "../types/meta";
+import packs from "../assets/icons/hub/packs.svg"
+import collection from "../assets/icons/hub/collection.svg"
+import armoryIcon from "../assets/icons/hub/armory.svg";
+import encyclopediaIcon from "../assets/icons/hub/encyclopedia.svg";
+import achievementsIcon from "../assets/icons/hub/achievements.svg";
 
 type HubStationKind =
     | "packs"
@@ -15,7 +20,6 @@ interface HubScreenProps {
     onOpenCardPacks: () => void;
     onOpenCollection: () => void;
     onOpenArmory: () => void;
-    onOpenShop: () => void;
 }
 
 interface HubStationProps {
@@ -39,45 +43,58 @@ function HubIcon({ kind }: { kind: HubStationKind }) {
     switch (kind) {
         case "packs":
             return (
-                <svg {...common}>
-                    <path d="M10 15.5 27 10l11 7-17 5.5-11-7Z" stroke="currentColor" strokeWidth="1.6" />
-                    <path d="M13 18v14l17 5.5V23.5L13 18Z" stroke="currentColor" strokeWidth="1.6" />
-                    <path d="m30 23.5 8-6.5v14L30 37.5" stroke="currentColor" strokeWidth="1.6" />
-                    <path d="m21 22.5 6-4.5 7 4.5-7 4.5-6-4.5Z" stroke="currentColor" strokeWidth="1.4" />
-                </svg>
+                <img
+                    src={packs}
+                    alt=""
+                    width={50}
+                    height={50}
+                    draggable={false}
+                    className="hc-hub-v2-station__external-icon"
+                />
             );
         case "collection":
             return (
-                <svg {...common}>
-                    <path d="M13 9h20v29H13c-2.2 0-4-1.8-4-4V13c0-2.2 1.8-4 4-4Z" stroke="currentColor" strokeWidth="1.6" />
-                    <path d="M13 9v29M18 15h10M18 21h10M18 27h7" stroke="currentColor" strokeWidth="1.6" />
-                    <path d="M33 14h3c1.1 0 2 .9 2 2v22H21" stroke="currentColor" strokeWidth="1.3" />
-                </svg>
+                <img
+                    src={collection}
+                    alt=""
+                    width={50}
+                    height={50}
+                    draggable={false}
+                    className="hc-hub-v2-station__external-icon"
+                />
             );
         case "armory":
             return (
-                <svg {...common}>
-                    <path d="M9 34h30v4H9v-4Z" stroke="currentColor" strokeWidth="1.6" />
-                    <path d="M12 34 18 19h12l6 15" stroke="currentColor" strokeWidth="1.6" />
-                    <path d="M15 19h18M18 15h12l-2-5H20l-2 5Z" stroke="currentColor" strokeWidth="1.6" />
-                    <path d="M20 25h8M19 30h10" stroke="currentColor" strokeWidth="1.4" />
-                </svg>
+                <img
+                    src={armoryIcon}
+                    alt=""
+                    width={50}
+                    height={50}
+                    draggable={false}
+                    className="hc-hub-v2-station__external-icon"
+                />
             );
         case "achievements":
             return (
-                <svg {...common}>
-                    <path d="M17 11h14v8c0 6-4.1 10-7 10s-7-4-7-10v-8Z" stroke="currentColor" strokeWidth="1.6" />
-                    <path d="M17 15H11v2c0 4 2.6 7 6 7M31 15h6v2c0 4-2.6 7-6 7M24 29v7M19 38h10" stroke="currentColor" strokeWidth="1.6" />
-                    <path d="m24 14 1.5 3.1 3.4.5-2.5 2.4.6 3.4-3-1.6-3 1.6.6-3.4-2.5-2.4 3.4-.5L24 14Z" stroke="currentColor" strokeWidth="1.1" />
-                </svg>
+                <img
+                    src={achievementsIcon}
+                    alt=""
+                    width={51}
+                    height={51}
+                    draggable={false}
+                    className="hc-hub-v2-station__external-icon"
+                />
             );
         case "encyclopedia":
             return (
-                <svg {...common}>
-                    <path d="M9 12c4-2 8-2 15 2v25c-7-4-11-4-15-2V12Z" stroke="currentColor" strokeWidth="1.6" />
-                    <path d="M39 12c-4-2-8-2-15 2v25c7-4 11-4 15-2V12Z" stroke="currentColor" strokeWidth="1.6" />
-                    <path d="M24 14v25M13 18h7M28 18h7M13 24h7M28 24h7" stroke="currentColor" strokeWidth="1.35" />
-                </svg>
+                <img
+                    src={encyclopediaIcon}
+                    alt=""
+                    width={50}
+                    height={50}
+                    draggable={false}
+                    className="hc-hub-v2-station__external-icon"
+                />
             );
         case "shop":
             return (
@@ -145,12 +162,7 @@ export default function HubScreen({
     onOpenCardPacks,
     onOpenCollection,
     onOpenArmory,
-    onOpenShop,
 }: HubScreenProps) {
-    const unlockedAchievements = meta.achievements.filter(
-        (achievement) => achievement.unlocked,
-    ).length;
-
     const discoveredCards = Object.values(meta.cardCollection).filter(
         (count) => count > 0,
     ).length;
@@ -196,7 +208,7 @@ export default function HubScreen({
                         <HubStation
                             kind="achievements"
                             title="ACHIEVEMENTS"
-                            subtitle={`${unlockedAchievements}/${meta.achievements.length}`}
+                            subtitle="COMING SOON"
                             disabled
                         />
                     </div>
@@ -219,17 +231,18 @@ export default function HubScreen({
                             subtitle={`HP LV ${maxHpLevel}`}
                             onClick={onOpenArmory}
                         />
+                      { /* SHOP OR ELSE IDK WHAT SHOULD DO HERE RIGHT NOW*/}
                         <HubStation
                             kind="encyclopedia"
                             title="ENCYCLOPEDIA"
-                            subtitle="ARCHIVE"
+                            subtitle="COMING SOON"
                             disabled
                         />
                         <HubStation
                             kind="shop"
-                            title="SHOP"
-                            subtitle="SUPPLIES"
-                            onClick={onOpenShop}
+                            title="FEATURE_NAME"
+                            subtitle="COMING SOON"
+                            disabled
                         />
                     </div>
                 </div>

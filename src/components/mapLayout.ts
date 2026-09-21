@@ -78,5 +78,5 @@ export function getMapPosition(
 }
 
 export function getMapCanvasHeight(floorCount: number): number {
-    return Math.max(2200, floorCount * 175 + 140);
+    return Math.max(2300, floorCount * 182 + 160);
 }

@@ -15,8 +15,8 @@ interface CombatTableProps {
 
 export default function CombatTable({ hand, drawPileCount, discardPileCount, exiledCount, actions, isPlayerTurn, onPlayCard, onEndTurn }: CombatTableProps) {
     return (
-        <section className="absolute inset-x-0 bottom-0 z-30 h-[385px] overflow-visible">
-            <div className="absolute inset-x-0 bottom-0 h-full border-t border-amber-900/55 bg-[linear-gradient(180deg,rgba(25,13,9,0.9),rgba(9,6,5,0.98))] shadow-[0_-16px_40px_rgba(0,0,0,0.5)]">
+        <section className="combat-table absolute inset-x-0 bottom-0 z-30 h-[385px] overflow-visible">
+            <div className="combat-table__surface absolute inset-x-0 bottom-0 h-full border-t border-amber-900/55 bg-[linear-gradient(180deg,rgba(25,13,9,0.9),rgba(9,6,5,0.98))] shadow-[0_-16px_40px_rgba(0,0,0,0.5)]">
                 <div className="absolute inset-x-0 top-0 h-16 bg-[radial-gradient(ellipse_at_50%_0%,rgba(183,82,25,0.18),transparent_65%)]" />
                 <div className="pointer-events-none absolute inset-[6px] border border-amber-900/20" />
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/20 to-transparent" />
@@ -36,7 +36,7 @@ export default function CombatTable({ hand, drawPileCount, discardPileCount, exi
                 type="button"
                 disabled={!isPlayerTurn}
                 onClick={onEndTurn}
-                className="hc-button hc-button--primary absolute right-[7%] top-[24px] z-40 min-h-[54px] min-w-[190px] px-10 py-4 text-lg"
+                className="combat-table__end-turn hc-button hc-button--primary z-40 min-h-[54px] min-w-[190px] px-10 py-4 text-lg"
             >
                 End Turn
             </button>

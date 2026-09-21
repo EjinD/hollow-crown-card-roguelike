@@ -724,7 +724,6 @@ export default function App() {
                         onOpenArmory={
                             handleOpenArmory
                         }
-                        onOpenShop={() => setScreen("shop")}
                     />
 
                 </>

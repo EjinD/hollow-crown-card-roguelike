@@ -73,7 +73,6 @@ function isSignatureAction(
         action === "drain" ||
         action === "block" ||
         action === "block-buff" ||
-        action === "block-buff" ||
         action === "heal" ||
         action === "buff" ||
         action === "debuff"
