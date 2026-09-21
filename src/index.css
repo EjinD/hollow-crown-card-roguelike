@@ -39,5 +39,6 @@
 /* Ashen Depths map presentation */
 /* Dungeon Gate presentation */
 @import "./styles/screens/dungeon-gate.css";
+@import "./styles/screens/dungeon-gate-polish.css";
 
 @import "./styles/screens/map.css";

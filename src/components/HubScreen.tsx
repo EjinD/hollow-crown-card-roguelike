@@ -133,7 +133,6 @@ function HubStation({
             {subtitle && (
                 <span className="hc-hub-v2-station__subtitle">{subtitle}</span>
             )}
-            {!disabled && <span className="hc-hub-v2-station__mark" aria-hidden="true">◆</span>}
         </span>
     );
 

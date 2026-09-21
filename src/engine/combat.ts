@@ -1141,7 +1141,7 @@ export function executeEnemyIntent(
                 player:
                     updatedPlayer,
                 enemy: {
-                    ...enemyAfterBurn,
+                    ...normalizedEnemy,
                     intentIndex:
                         nextIntentIndex,
                     intent:
@@ -1157,7 +1157,7 @@ export function executeEnemyIntent(
             player:
                 updatedPlayer,
             enemy: {
-                ...enemyAfterBurn,
+                ...normalizedEnemy,
                 intentIndex:
                     nextIntentIndex,
                 intent:
@@ -1174,7 +1174,7 @@ export function executeEnemyIntent(
     ) {
         const updatedEnemy =
             addEnemyBlock(
-                enemyAfterBurn,
+                normalizedEnemy,
                 intent.amount,
             );
 
@@ -1200,7 +1200,7 @@ export function executeEnemyIntent(
     ) {
         const updatedEnemy =
             healEnemy(
-                enemyAfterBurn,
+                normalizedEnemy,
                 intent.amount,
                 enemyDefinition
                     .maxHp,
@@ -1268,7 +1268,7 @@ export function executeEnemyIntent(
                 ],
             },
             enemy: {
-                ...enemyAfterBurn,
+                ...normalizedEnemy,
                 intentIndex:
                     nextIntentIndex,
                 intent:

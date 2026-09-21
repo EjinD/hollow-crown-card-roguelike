@@ -201,14 +201,6 @@
     filter: saturate(.45);
 }
 
-.hc-dungeon-card__inner {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    min-height: 390px;
-    flex-direction: column;
-    padding: 22px 20px 18px;
-}
 
 .hc-dungeon-card__top {
     display: flex;
@@ -237,39 +229,7 @@
     color: rgba(206,167,111,.66);
 }
 
-.hc-dungeon-card__ornament {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 38px 0 24px;
-    color: rgba(209,157,87,.66);
-}
 
-.hc-dungeon-card__ornament span {
-    height: 1px;
-    flex: 1;
-    background: linear-gradient(90deg, transparent, rgba(187,133,66,.22));
-}
-
-.hc-dungeon-card__ornament span:last-child {
-    background: linear-gradient(90deg, rgba(187,133,66,.22), transparent);
-}
-
-.hc-dungeon-card__ornament b {
-    font-size: 7px;
-    font-weight: 400;
-}
-
-.hc-dungeon-card__body h2 {
-    margin: 0;
-    font-family: var(--hc-font-display);
-    font-size: 24px;
-    line-height: 1.02;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: #eadcc4;
-    text-shadow: 0 3px 12px rgba(0,0,0,.68);
-}
 
 .hc-dungeon-card__subtitle {
     margin: 7px 0 0;
@@ -338,10 +298,6 @@
     }
 
     .hc-dungeon-card {
-        min-height: 350px;
-    }
-
-    .hc-dungeon-card__inner {
         min-height: 350px;
     }
 }
